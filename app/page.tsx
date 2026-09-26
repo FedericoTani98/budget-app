@@ -126,6 +126,11 @@ const TRANSLATIONS: Record<Lang, any> = {
     tuttiMovimenti: "Tutti i movimenti",
     settimanaDelPrefix: "Settimana del",
     lingua: "Lingua",
+    installTitle: "Installa l'app",
+    installDesc: "Aggiungila alla schermata Home per usarla come un'app vera, a schermo intero.",
+    installIosSteps: 'Tocca l\'icona di condivisione ⬆️ qui sotto, poi scegli "Aggiungi a Home".',
+    installBtn: "Installa",
+    installDismiss: "Non ora",
   },
   en: {
     patrimonioTotale: "Total Net Worth",
@@ -172,6 +177,11 @@ const TRANSLATIONS: Record<Lang, any> = {
     tuttiMovimenti: "All transactions",
     settimanaDelPrefix: "Week of",
     lingua: "Language",
+    installTitle: "Install the app",
+    installDesc: "Add it to your Home Screen to use it like a real full-screen app.",
+    installIosSteps: 'Tap the share icon ⬆️ below, then choose "Add to Home Screen".',
+    installBtn: "Install",
+    installDismiss: "Not now",
   },
   pl: {
     patrimonioTotale: "Całkowity majątek",
@@ -218,6 +228,11 @@ const TRANSLATIONS: Record<Lang, any> = {
     tuttiMovimenti: "Wszystkie transakcje",
     settimanaDelPrefix: "Tydzień od",
     lingua: "Język",
+    installTitle: "Zainstaluj aplikację",
+    installDesc: "Dodaj ją do ekranu głównego, aby korzystać z niej jak z prawdziwej aplikacji na pełnym ekranie.",
+    installIosSteps: 'Dotknij ikony udostępniania ⬆️ poniżej, a następnie wybierz "Dodaj do ekranu początkowego".',
+    installBtn: "Zainstaluj",
+    installDismiss: "Nie teraz",
   },
 };
 
@@ -247,6 +262,11 @@ export default function Home() {
   const [lang, setLang] = useState<Lang>("it");
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const t = TRANSLATIONS[lang];
+
+  // Stato Banner Installazione PWA
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [isIos, setIsIos] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const tabLabel = (tabId: string) => {
     if (tabId === "spese") return t.tabSpese;
@@ -290,7 +310,47 @@ export default function Home() {
     if (savedCat) { try { setCategories(JSON.parse(savedCat)); } catch (e) {} }
     if (savedLang && ["it", "en", "pl"].includes(savedLang)) { setLang(savedLang as Lang); }
     setMounted(true);
+
+    // Rileva se l'app è già installata (aperta come PWA standalone)
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true;
+
+    const dismissed = localStorage.getItem("budget-install-dismissed-v7") === "true";
+    const isIosDevice = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+    const isMobileDevice = /android|iphone|ipad|ipod/i.test(window.navigator.userAgent);
+    setIsIos(isIosDevice);
+
+    if (!isStandalone && !dismissed && isMobileDevice) {
+      setShowInstallBanner(true);
+    }
+
+    // Su Android/Chrome intercetta l'evento per mostrare un vero pulsante "Installa"
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
   }, []);
+
+  const dismissInstallBanner = () => {
+    setShowInstallBanner(false);
+    localStorage.setItem("budget-install-dismissed-v7", "true");
+  };
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
+        dismissInstallBanner();
+      }
+      setDeferredPrompt(null);
+    }
+  };
 
   useEffect(() => {
     if (mounted) {
@@ -700,6 +760,38 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* BANNER INSTALLAZIONE PWA */}
+      {showInstallBanner && (
+        <div className="fixed bottom-24 left-4 right-4 z-30 bg-[#1f3b2d] border border-green-900/50 rounded-2xl p-4 shadow-2xl">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">📲</span>
+            <div className="flex-1">
+              <p className="font-bold text-sm text-white">{t.installTitle}</p>
+              <p className="text-xs text-gray-300 mt-1">
+                {isIos ? t.installIosSteps : t.installDesc}
+              </p>
+              <div className="flex gap-2 mt-3">
+                {!isIos && deferredPrompt && (
+                  <button
+                    onClick={handleInstallClick}
+                    className="bg-[#4caf50] text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                  >
+                    {t.installBtn}
+                  </button>
+                )}
+                <button
+                  onClick={dismissInstallBanner}
+                  className="text-gray-400 text-xs px-3 py-1.5 rounded-lg hover:text-white"
+                >
+                  {t.installDismiss}
+                </button>
+              </div>
+            </div>
+            <button onClick={dismissInstallBanner} className="text-gray-500 text-lg leading-none">✕</button>
+          </div>
+        </div>
+      )}
 
       {/* PULSANTE FLOTTANTE AGGIUNGI */}
       <button
