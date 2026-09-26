@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 
@@ -43,6 +43,184 @@ const DEFAULT_CATEGORIES = {
   ]
 };
 
+// Traduzioni delle etichette delle categorie di default (id -> label per lingua).
+// Le categorie create dall'utente mantengono invece il nome esatto digitato.
+const CATEGORY_LABELS: Record<string, Record<string, string>> = {
+  it: {
+    alimentari: "Alimentari", bollette: "Bollette", uscite: "Uscite fuori",
+    shopping: "Shopping", vacanza: "Vacanza", auto: "Auto/Trasporti",
+    stipendio: "Stipendio", rimborsi: "Rimborsi", regali: "Regali",
+    etf: "Azioni/ETF", crypto: "Crypto", fondo: "Fondo Pensione",
+  },
+  en: {
+    alimentari: "Groceries", bollette: "Bills", uscite: "Dining Out",
+    shopping: "Shopping", vacanza: "Vacation", auto: "Car/Transport",
+    stipendio: "Salary", rimborsi: "Reimbursements", regali: "Gifts",
+    etf: "Stocks/ETF", crypto: "Crypto", fondo: "Pension Fund",
+  },
+  pl: {
+    alimentari: "Zakupy spożywcze", bollette: "Rachunki", uscite: "Jedzenie na mieście",
+    shopping: "Zakupy", vacanza: "Wakacje", auto: "Samochód/Transport",
+    stipendio: "Wynagrodzenie", rimborsi: "Zwroty", regali: "Prezenty",
+    etf: "Akcje/ETF", crypto: "Krypto", fondo: "Fundusz emerytalny",
+  },
+};
+
+const DATE_LOCALE: Record<string, string> = {
+  it: "it-IT",
+  en: "en-US",
+  pl: "pl-PL",
+};
+
+const LANGUAGE_META: Record<string, { flag: string; name: string }> = {
+  it: { flag: "🇮🇹", name: "Italiano" },
+  en: { flag: "🇬🇧", name: "English" },
+  pl: { flag: "🇵🇱", name: "Polski" },
+};
+
+type Lang = "it" | "en" | "pl";
+
+const TRANSLATIONS: Record<Lang, any> = {
+  it: {
+    patrimonioTotale: "Patrimonio Totale",
+    liquidita: "Liquidità",
+    investitiLabel: "Investiti",
+    tabSpese: "Spese",
+    tabEntrate: "Entrate",
+    tabInvest: "Invest.",
+    periodGiorno: "Giorno",
+    periodSettimana: "Settimana",
+    periodMese: "Mese",
+    periodAnno: "Anno",
+    periodTutti: "Tutti",
+    confrontoPeriodo: "Confronto Periodo",
+    nessunMovimento: "Nessun movimento registrato in questo periodo.",
+    modifica: "Modifica",
+    modificaMovimento: "Modifica Movimento",
+    nuovaUscita: "Nuova Uscita",
+    nuovaEntrata: "Nuova Entrata",
+    nuovoInvestimento: "Nuovo Investimento",
+    importoLabel: "Importo (€)",
+    dataLabel: "Data",
+    descrizioneLabel: "Descrizione / Note",
+    descrizionePlaceholder: "Es. Spesa Conad, ETF...",
+    selezionaCategoria: "Seleziona Categoria",
+    nuovaCategoriaBtn: "+ Nuova Categoria",
+    eliminaBtn: "Elimina",
+    salvaBtn: "Salva",
+    aggiornaBtn: "Aggiorna",
+    creaCategoriaTitle: "Crea Categoria",
+    nomeCategoriaLabel: "Nome Categoria",
+    nomeCategoriaPlaceholder: "Es. Palestra, Regali...",
+    scegliIconaLabel: "Scegli Icona",
+    scegliColoreLabel: "Scegli Colore",
+    annullaBtn: "Annulla",
+    creaBtn: "Crea",
+    assistenteFinanziario: "Assistente Finanziario",
+    analizzaDati: "Analizza i tuoi dati in tempo reale",
+    chatWelcome: "👋 Ciao! Chiedimi qualsiasi cosa sul tuo budget.",
+    chatExample: 'Es: "Quanto ho speso 3 giorni fa?", "Qual è la mia spesa maggiore questo mese?"',
+    chatPlaceholder: "Chiedi all'AI...",
+    inviaBtn: "Invia",
+    analizzando: "Sto analizzando i tuoi dati...",
+    tuttiMovimenti: "Tutti i movimenti",
+    settimanaDelPrefix: "Settimana del",
+    lingua: "Lingua",
+  },
+  en: {
+    patrimonioTotale: "Total Net Worth",
+    liquidita: "Liquidity",
+    investitiLabel: "Invested",
+    tabSpese: "Expenses",
+    tabEntrate: "Income",
+    tabInvest: "Invest.",
+    periodGiorno: "Day",
+    periodSettimana: "Week",
+    periodMese: "Month",
+    periodAnno: "Year",
+    periodTutti: "All",
+    confrontoPeriodo: "Period Comparison",
+    nessunMovimento: "No transactions recorded in this period.",
+    modifica: "Edit",
+    modificaMovimento: "Edit Transaction",
+    nuovaUscita: "New Expense",
+    nuovaEntrata: "New Income",
+    nuovoInvestimento: "New Investment",
+    importoLabel: "Amount (€)",
+    dataLabel: "Date",
+    descrizioneLabel: "Description / Notes",
+    descrizionePlaceholder: "E.g. Groceries, ETF...",
+    selezionaCategoria: "Select Category",
+    nuovaCategoriaBtn: "+ New Category",
+    eliminaBtn: "Delete",
+    salvaBtn: "Save",
+    aggiornaBtn: "Update",
+    creaCategoriaTitle: "Create Category",
+    nomeCategoriaLabel: "Category Name",
+    nomeCategoriaPlaceholder: "E.g. Gym, Gifts...",
+    scegliIconaLabel: "Choose Icon",
+    scegliColoreLabel: "Choose Color",
+    annullaBtn: "Cancel",
+    creaBtn: "Create",
+    assistenteFinanziario: "Financial Assistant",
+    analizzaDati: "Analyzes your data in real time",
+    chatWelcome: "👋 Hi! Ask me anything about your budget.",
+    chatExample: 'E.g: "How much did I spend 3 days ago?", "What was my biggest expense this month?"',
+    chatPlaceholder: "Ask the AI...",
+    inviaBtn: "Send",
+    analizzando: "Analyzing your data...",
+    tuttiMovimenti: "All transactions",
+    settimanaDelPrefix: "Week of",
+    lingua: "Language",
+  },
+  pl: {
+    patrimonioTotale: "Całkowity majątek",
+    liquidita: "Płynność",
+    investitiLabel: "Zainwestowane",
+    tabSpese: "Wydatki",
+    tabEntrate: "Przychody",
+    tabInvest: "Inwest.",
+    periodGiorno: "Dzień",
+    periodSettimana: "Tydzień",
+    periodMese: "Miesiąc",
+    periodAnno: "Rok",
+    periodTutti: "Wszystkie",
+    confrontoPeriodo: "Porównanie okresu",
+    nessunMovimento: "Brak transakcji w tym okresie.",
+    modifica: "Edytuj",
+    modificaMovimento: "Edytuj transakcję",
+    nuovaUscita: "Nowy wydatek",
+    nuovaEntrata: "Nowy przychód",
+    nuovoInvestimento: "Nowa inwestycja",
+    importoLabel: "Kwota (€)",
+    dataLabel: "Data",
+    descrizioneLabel: "Opis / Notatki",
+    descrizionePlaceholder: "Np. Zakupy, ETF...",
+    selezionaCategoria: "Wybierz kategorię",
+    nuovaCategoriaBtn: "+ Nowa kategoria",
+    eliminaBtn: "Usuń",
+    salvaBtn: "Zapisz",
+    aggiornaBtn: "Aktualizuj",
+    creaCategoriaTitle: "Utwórz kategorię",
+    nomeCategoriaLabel: "Nazwa kategorii",
+    nomeCategoriaPlaceholder: "Np. Siłownia, Prezenty...",
+    scegliIconaLabel: "Wybierz ikonę",
+    scegliColoreLabel: "Wybierz kolor",
+    annullaBtn: "Anuluj",
+    creaBtn: "Utwórz",
+    assistenteFinanziario: "Asystent finansowy",
+    analizzaDati: "Analizuje Twoje dane w czasie rzeczywistym",
+    chatWelcome: "👋 Cześć! Zapytaj mnie o cokolwiek związanego z Twoim budżetem.",
+    chatExample: 'Np.: "Ile wydałem 3 dni temu?", "Jaki był mój największy wydatek w tym miesiącu?"',
+    chatPlaceholder: "Zapytaj AI...",
+    inviaBtn: "Wyślij",
+    analizzando: "Analizuję Twoje dane...",
+    tuttiMovimenti: "Wszystkie transakcje",
+    settimanaDelPrefix: "Tydzień od",
+    lingua: "Język",
+  },
+};
+
 const getColorHex = (colorStr: string) => {
   if (!colorStr) return "#9ca3af";
   if (colorStr.startsWith("#")) return colorStr;
@@ -62,8 +240,19 @@ export default function Home() {
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("spese");
-  const [timeFrame, setTimeFrame] = useState("mese");
+  const [timeFrame, setTimeFrame] = useState("giorno");
   const [viewDate, setViewDate] = useState(new Date());
+
+  // Stato Lingua
+  const [lang, setLang] = useState<Lang>("it");
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const t = TRANSLATIONS[lang];
+
+  const tabLabel = (tabId: string) => {
+    if (tabId === "spese") return t.tabSpese;
+    if (tabId === "entrate") return t.tabEntrate;
+    return t.tabInvest;
+  };
 
   // Stato Modale Transazione
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -83,11 +272,11 @@ export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatText, setChatText] = useState("");
 
-  // Vercel AI SDK Hook aggiornato (usiamo sendMessage)
+  // Vercel AI SDK Hook (transport + body dinamico, include la lingua per l'assistente)
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      body: () => ({ transactions }),
+      body: () => ({ transactions, language: lang }),
     }),
   });
 
@@ -96,8 +285,10 @@ export default function Home() {
   useEffect(() => {
     const savedTx = localStorage.getItem("budget-dati-v7");
     const savedCat = localStorage.getItem("budget-cat-v7");
+    const savedLang = localStorage.getItem("budget-lang-v7");
     if (savedTx) { try { setTransactions(JSON.parse(savedTx)); } catch (e) {} }
     if (savedCat) { try { setCategories(JSON.parse(savedCat)); } catch (e) {} }
+    if (savedLang && ["it", "en", "pl"].includes(savedLang)) { setLang(savedLang as Lang); }
     setMounted(true);
   }, []);
 
@@ -105,8 +296,36 @@ export default function Home() {
     if (mounted) {
       localStorage.setItem("budget-dati-v7", JSON.stringify(transactions));
       localStorage.setItem("budget-cat-v7", JSON.stringify(categories));
+      localStorage.setItem("budget-lang-v7", lang);
     }
-  }, [transactions, categories, mounted]);
+  }, [transactions, categories, lang, mounted]);
+
+  // Riporta la vista a "oggi/giorno" solo se l'app è rimasta in background
+  // per più di 30 minuti (es. lasciata aperta da ieri sul telefono).
+  // Se cambi app solo per un attimo (rispondere a un messaggio, ecc.)
+  // la navigazione tra i mesi/giorni non viene toccata.
+  const lastHiddenAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    const RESET_THRESHOLD_MS = 30 * 60 * 1000; // 30 minuti
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        lastHiddenAtRef.current = Date.now();
+      } else if (document.visibilityState === "visible") {
+        const hiddenAt = lastHiddenAtRef.current;
+        if (hiddenAt && Date.now() - hiddenAt > RESET_THRESHOLD_MS) {
+          setViewDate(new Date());
+          setTimeFrame("giorno");
+        }
+        lastHiddenAtRef.current = null;
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   const openNewModal = () => {
     setEditingId(null);
@@ -133,14 +352,14 @@ export default function Home() {
     if (!amount || !selectedCategory) return;
 
     if (editingId) {
-      setTransactions(transactions.map(t => t.id === editingId ? {
-        ...t,
+      setTransactions(transactions.map(tx => tx.id === editingId ? {
+        ...tx,
         amount: parseFloat(amount),
         type: activeTab,
         categoryId: selectedCategory.id,
         description: description.trim(),
         date: date
-      } : t));
+      } : tx));
     } else {
       const newTx = {
         id: Date.now(),
@@ -157,7 +376,7 @@ export default function Home() {
   };
 
   const deleteTransaction = (id: number) => {
-    setTransactions(transactions.filter(t => t.id !== id));
+    setTransactions(transactions.filter(tx => tx.id !== id));
     setIsModalOpen(false);
   };
 
@@ -198,18 +417,21 @@ export default function Home() {
 
   if (!mounted) return null;
 
+  // Restituisce l'etichetta della categoria tradotta (se è una categoria di default),
+  // altrimenti il nome esatto digitato dall'utente per le categorie custom.
   const getCategoryData = (type: string, categoryId: string) => {
     const list = (categories as any)[type] || [];
     const cat = list.find((c: any) => c.id === categoryId);
     if (cat) {
-      return { ...cat, color: getColorHex(cat.color) };
+      const translatedLabel = CATEGORY_LABELS[lang]?.[cat.id] ?? cat.label;
+      return { ...cat, label: translatedLabel, color: getColorHex(cat.color) };
     }
     return { id: categoryId, label: categoryId, icon: "❓", color: "#64748b" };
   };
 
-  const filteredByPeriod = transactions.filter(t => {
-    if (!t.date) return true;
-    const tDate = new Date(t.date);
+  const filteredByPeriod = transactions.filter(tx => {
+    if (!tx.date) return true;
+    const tDate = new Date(tx.date);
 
     if (timeFrame === "giorno") {
       return tDate.toDateString() === viewDate.toDateString();
@@ -227,23 +449,23 @@ export default function Home() {
     return true;
   });
 
-  const filteredTransactions = filteredByPeriod.filter(t => t.type === activeTab);
+  const filteredTransactions = filteredByPeriod.filter(tx => tx.type === activeTab);
   const totaleTabAttiva = filteredTransactions.reduce((acc, curr) => acc + curr.amount, 0);
 
-  const periodEntrate = filteredByPeriod.filter(t => t.type === "entrate").reduce((a, b) => a + b.amount, 0);
-  const periodSpese = filteredByPeriod.filter(t => t.type === "spese").reduce((a, b) => a + b.amount, 0);
-  const periodInvestiti = filteredByPeriod.filter(t => t.type === "investimenti").reduce((a, b) => a + b.amount, 0);
+  const periodEntrate = filteredByPeriod.filter(tx => tx.type === "entrate").reduce((a, b) => a + b.amount, 0);
+  const periodSpese = filteredByPeriod.filter(tx => tx.type === "spese").reduce((a, b) => a + b.amount, 0);
+  const periodInvestiti = filteredByPeriod.filter(tx => tx.type === "investimenti").reduce((a, b) => a + b.amount, 0);
   const periodTotalSum = periodEntrate + periodSpese + periodInvestiti;
 
-  const totaleEntrate = transactions.filter(t => t.type === "entrate").reduce((a, b) => a + b.amount, 0);
-  const totaleSpese = transactions.filter(t => t.type === "spese").reduce((a, b) => a + b.amount, 0);
-  const totaleInvestiti = transactions.filter(t => t.type === "investimenti").reduce((a, b) => a + b.amount, 0);
+  const totaleEntrate = transactions.filter(tx => tx.type === "entrate").reduce((a, b) => a + b.amount, 0);
+  const totaleSpese = transactions.filter(tx => tx.type === "spese").reduce((a, b) => a + b.amount, 0);
+  const totaleInvestiti = transactions.filter(tx => tx.type === "investimenti").reduce((a, b) => a + b.amount, 0);
 
   const liquidita = totaleEntrate - totaleSpese - totaleInvestiti;
   const patrimonioTotale = liquidita + totaleInvestiti;
 
-  const categoryTotals = filteredTransactions.reduce((acc: any, t) => {
-    acc[t.categoryId] = (acc[t.categoryId] || 0) + t.amount;
+  const categoryTotals = filteredTransactions.reduce((acc: any, tx) => {
+    acc[tx.categoryId] = (acc[tx.categoryId] || 0) + tx.amount;
     return acc;
   }, {});
 
@@ -269,11 +491,12 @@ export default function Home() {
     : "#374151";
 
   const getPeriodLabel = () => {
-    if (timeFrame === "giorno") return viewDate.toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" });
-    if (timeFrame === "mese") return viewDate.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
+    const locale = DATE_LOCALE[lang];
+    if (timeFrame === "giorno") return viewDate.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+    if (timeFrame === "mese") return viewDate.toLocaleDateString(locale, { month: "long", year: "numeric" });
     if (timeFrame === "anno") return viewDate.getFullYear().toString();
-    if (timeFrame === "settimana") return `Settimana del ${viewDate.getDate()}/${viewDate.getMonth() + 1}`;
-    return "Tutti i movimenti";
+    if (timeFrame === "settimana") return `${t.settimanaDelPrefix} ${viewDate.getDate()}/${viewDate.getMonth() + 1}`;
+    return t.tuttiMovimenti;
   };
 
   return (
@@ -281,14 +504,41 @@ export default function Home() {
       
       {/* HEADER */}
       <header className="bg-[#1f3b2d] pt-6 pb-2 px-4 flex flex-col items-center shadow-md z-10 relative rounded-b-3xl">
+
+        {/* SELETTORE LINGUA */}
+        <div className="absolute top-3 right-3 z-20">
+          <button
+            onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+            className="flex items-center gap-1 bg-[#162a20] border border-green-900/40 rounded-full px-2.5 py-1 text-sm"
+          >
+            <span>{LANGUAGE_META[lang].flag}</span>
+          </button>
+          {isLangMenuOpen && (
+            <div className="absolute top-9 right-0 bg-[#162a20] border border-green-900/40 rounded-xl overflow-hidden shadow-xl min-w-[130px]">
+              {(Object.keys(LANGUAGE_META) as Lang[]).map((code) => (
+                <button
+                  key={code}
+                  onClick={() => { setLang(code); setIsLangMenuOpen(false); }}
+                  className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-[#1f3b2d] transition-colors ${
+                    lang === code ? "bg-[#1f3b2d] font-bold" : ""
+                  }`}
+                >
+                  <span>{LANGUAGE_META[code].flag}</span>
+                  <span>{LANGUAGE_META[code].name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="text-center mb-2">
-          <p className="text-xs text-gray-300 uppercase tracking-wider">Patrimonio Totale</p>
+          <p className="text-xs text-gray-300 uppercase tracking-wider">{t.patrimonioTotale}</p>
           <h1 className="text-3xl font-bold">{patrimonioTotale.toFixed(2)} €</h1>
         </div>
 
         <div className="flex justify-between w-full text-xs text-gray-300 bg-[#162a20] p-2 rounded-xl mb-3 border border-green-900/40">
-          <span>💧 Liquidità: <strong className="text-white">{liquidita.toFixed(2)} €</strong></span>
-          <span>📈 Investiti: <strong className="text-blue-400">{totaleInvestiti.toFixed(2)} €</strong></span>
+          <span>💧 {t.liquidita}: <strong className="text-white">{liquidita.toFixed(2)} €</strong></span>
+          <span>📈 {t.investitiLabel}: <strong className="text-blue-400">{totaleInvestiti.toFixed(2)} €</strong></span>
         </div>
 
         {/* TAB NAV */}
@@ -297,11 +547,11 @@ export default function Home() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 pb-2 border-b-2 uppercase tracking-wide capitalize transition-colors ${
+              className={`flex-1 pb-2 border-b-2 uppercase tracking-wide transition-colors ${
                 activeTab === tab ? "border-[#4caf50] text-white" : "border-transparent"
               }`}
             >
-              {tab === "investimenti" ? "Invest." : tab}
+              {tabLabel(tab)}
             </button>
           ))}
         </div>
@@ -313,11 +563,11 @@ export default function Home() {
         {/* SELETTORE PERIODO */}
         <div className="flex justify-between text-xs text-gray-400 mb-3 px-1 bg-[#1e1e1e] p-1.5 rounded-xl">
           {[
-            { id: "giorno", label: "Giorno" },
-            { id: "settimana", label: "Settimana" },
-            { id: "mese", label: "Mese" },
-            { id: "anno", label: "Anno" },
-            { id: "tutti", label: "Tutti" },
+            { id: "giorno", label: t.periodGiorno },
+            { id: "settimana", label: t.periodSettimana },
+            { id: "mese", label: t.periodMese },
+            { id: "anno", label: t.periodAnno },
+            { id: "tutti", label: t.periodTutti },
           ].map((item) => (
             <button
               key={item.id}
@@ -354,7 +604,7 @@ export default function Home() {
         {/* CONFRONTO MACRO-CATEGORIE */}
         <div className="bg-[#1e1e1e] p-3.5 rounded-2xl mb-5 border border-gray-800">
           <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-2 font-bold">
-            Confronto Periodo ({getPeriodLabel()})
+            {t.confrontoPeriodo} ({getPeriodLabel()})
           </p>
 
           <div className="w-full h-3 bg-gray-700 rounded-full flex overflow-hidden mb-3">
@@ -371,15 +621,15 @@ export default function Home() {
 
           <div className="grid grid-cols-3 gap-2 text-center text-xs">
             <div className="bg-[#2d2d2d] p-2 rounded-xl border-t-2 border-[#10b981]">
-              <span className="text-gray-400 text-[10px] block">Entrate</span>
+              <span className="text-gray-400 text-[10px] block">{t.tabEntrate}</span>
               <strong className="text-[#10b981]">{periodEntrate.toFixed(2)} €</strong>
             </div>
             <div className="bg-[#2d2d2d] p-2 rounded-xl border-t-2 border-[#ef4444]">
-              <span className="text-gray-400 text-[10px] block">Spese</span>
+              <span className="text-gray-400 text-[10px] block">{t.tabSpese}</span>
               <strong className="text-[#ef4444]">{periodSpese.toFixed(2)} €</strong>
             </div>
             <div className="bg-[#2d2d2d] p-2 rounded-xl border-t-2 border-[#3b82f6]">
-              <span className="text-gray-400 text-[10px] block">Invest.</span>
+              <span className="text-gray-400 text-[10px] block">{t.tabInvest}</span>
               <strong className="text-[#3b82f6]">{periodInvestiti.toFixed(2)} €</strong>
             </div>
           </div>
@@ -394,7 +644,7 @@ export default function Home() {
             <div className="w-full h-full bg-[#2d2d2d] rounded-full flex items-center justify-center text-center shadow-inner">
               <div>
                 <span className="text-xl font-bold">{totaleTabAttiva.toFixed(2)} €</span>
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest">{activeTab}</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest">{tabLabel(activeTab)}</p>
               </div>
             </div>
           </div>
@@ -415,12 +665,12 @@ export default function Home() {
 
         {/* LISTA TRANSAZIONI */}
         <div className="flex flex-col gap-2">
-          {filteredTransactions.map((t) => {
-            const catData = getCategoryData(t.type, t.categoryId);
+          {filteredTransactions.map((tx) => {
+            const catData = getCategoryData(tx.type, tx.categoryId);
             return (
               <div 
-                key={t.id} 
-                onClick={() => openEditModal(t)}
+                key={tx.id} 
+                onClick={() => openEditModal(tx)}
                 className="bg-[#3a3a3a] p-3 rounded-xl flex items-center justify-between shadow-sm cursor-pointer hover:bg-[#444444] transition-colors"
               >
                 <div className="flex items-center gap-3">
@@ -432,21 +682,21 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="font-medium text-base text-gray-100">{catData.label}</p>
-                    {t.description && <p className="text-xs text-gray-400">{t.description}</p>}
-                    <p className="text-[10px] text-gray-500">{t.date}</p>
+                    {tx.description && <p className="text-xs text-gray-400">{tx.description}</p>}
+                    <p className="text-[10px] text-gray-500">{tx.date}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className={`font-bold text-base ${t.type === "spese" ? "text-white" : t.type === "entrate" ? "text-[#10b981]" : "text-[#3b82f6]"}`}>
-                    {t.amount.toFixed(2)} €
+                  <span className={`font-bold text-base ${tx.type === "spese" ? "text-white" : tx.type === "entrate" ? "text-[#10b981]" : "text-[#3b82f6]"}`}>
+                    {tx.amount.toFixed(2)} €
                   </span>
-                  <p className="text-[10px] text-gray-500">Modifica</p>
+                  <p className="text-[10px] text-gray-500">{t.modifica}</p>
                 </div>
               </div>
             );
           })}
           {filteredTransactions.length === 0 && (
-            <p className="text-center text-gray-500 mt-6 text-sm">Nessun movimento registrato in questo periodo.</p>
+            <p className="text-center text-gray-500 mt-6 text-sm">{t.nessunMovimento}</p>
           )}
         </div>
       </div>
@@ -477,8 +727,8 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <span className="text-2xl">🤖</span>
                 <div>
-                  <h3 className="font-bold text-sm">Assistente Finanziario</h3>
-                  <p className="text-[10px] text-gray-400">Analizza i tuoi dati in tempo reale</p>
+                  <h3 className="font-bold text-sm">{t.assistenteFinanziario}</h3>
+                  <p className="text-[10px] text-gray-400">{t.analizzaDati}</p>
                 </div>
               </div>
               <button onClick={() => setIsChatOpen(false)} className="text-gray-400 p-2 text-lg">✕</button>
@@ -488,8 +738,8 @@ export default function Home() {
             <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-3 text-sm">
               {messages.length === 0 && (
                 <div className="text-center text-gray-400 text-xs my-auto p-4 bg-[#1e1e1e] rounded-2xl">
-                  👋 Ciao! Chiedimi qualsiasi cosa sul tuo budget.<br/><br/>
-                  <span className="italic text-gray-500">Es: "Quanto ho speso 3 giorni fa?", "Qual è la mia spesa maggiore questo mese?"</span>
+                  {t.chatWelcome}<br/><br/>
+                  <span className="italic text-gray-500">{t.chatExample}</span>
                 </div>
               )}
 
@@ -502,11 +752,9 @@ export default function Home() {
                       : "bg-[#1e1e1e] text-gray-200 self-start rounded-bl-none border border-gray-700"
                   }`}
                 >
-                  {/* FIX: filtriamo solo le parti di tipo testo e usiamo una key univoca
-                      per ogni parte, evitando null nel render e warning di React */}
                   {m.parts
-                    ?.filter((p) => p.type === "text")
-                    .map((p, idx) => (
+                    ?.filter((p: any) => p.type === "text")
+                    .map((p: any, idx: number) => (
                       <span key={`${m.id}-${idx}`}>{p.text}</span>
                     ))}
                 </div>
@@ -514,12 +762,12 @@ export default function Home() {
 
               {isLoading && (
                 <div className="bg-[#1e1e1e] text-gray-400 p-3 rounded-2xl rounded-bl-none self-start text-xs border border-gray-700 animate-pulse">
-                  Sto analizzando i tuoi dati...
+                  {t.analizzando}
                 </div>
               )}
             </div>
 
-            {/* INPUT E BOTTONE CHAT AGGIORNATO CON sendMessage */}
+            {/* INPUT E BOTTONE CHAT */}
             <form 
               onSubmit={async (e) => {
                 e.preventDefault();
@@ -534,7 +782,7 @@ export default function Home() {
                 type="text"
                 value={chatText}
                 onChange={(e) => setChatText(e.target.value)}
-                placeholder="Chiedi all'AI..."
+                placeholder={t.chatPlaceholder}
                 className="flex-1 bg-[#1e1e1e] border border-gray-700 p-3 rounded-xl text-white text-sm outline-none focus:border-[#3b82f6]"
               />
               <button
@@ -546,7 +794,7 @@ export default function Home() {
                     : "bg-[#3b82f6] hover:bg-blue-600 text-white"
                 }`}
               >
-                Invia
+                {t.inviaBtn}
               </button>
             </form>
 
@@ -560,7 +808,9 @@ export default function Home() {
           <div className="bg-[#2d2d2d] w-full sm:w-[95%] p-6 rounded-t-3xl h-[88vh] flex flex-col overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
-                {editingId ? "Modifica Movimento" : `Nuov${activeTab === "spese" ? "a Uscita" : activeTab === "entrate" ? "a Entrata" : "o Investimento"}`}
+                {editingId
+                  ? t.modificaMovimento
+                  : activeTab === "spese" ? t.nuovaUscita : activeTab === "entrate" ? t.nuovaEntrata : t.nuovoInvestimento}
               </h2>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 p-2 text-xl">✕</button>
             </div>
@@ -569,7 +819,7 @@ export default function Home() {
               
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-gray-400 uppercase mb-1 block">Importo (€)</label>
+                  <label className="text-xs text-gray-400 uppercase mb-1 block">{t.importoLabel}</label>
                   <input
                     type="number"
                     step="0.01"
@@ -582,7 +832,7 @@ export default function Home() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 uppercase mb-1 block">Data</label>
+                  <label className="text-xs text-gray-400 uppercase mb-1 block">{t.dataLabel}</label>
                   <input
                     type="date"
                     value={date}
@@ -594,10 +844,10 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 uppercase mb-1 block">Descrizione / Note</label>
+                <label className="text-xs text-gray-400 uppercase mb-1 block">{t.descrizioneLabel}</label>
                 <input
                   type="text"
-                  placeholder="Es. Spesa Conad, ETF..."
+                  placeholder={t.descrizionePlaceholder}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="bg-[#1e1e1e] border border-[#3a3a3a] p-3 rounded-xl text-white text-sm w-full outline-none focus:border-[#4caf50]"
@@ -607,23 +857,24 @@ export default function Home() {
               {/* SELEZIONE CATEGORIA */}
               <div className="flex-1 overflow-y-auto">
                 <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs text-gray-400 uppercase block">Seleziona Categoria</label>
+                  <label className="text-xs text-gray-400 uppercase block">{t.selezionaCategoria}</label>
                   <button 
                     type="button" 
                     onClick={() => setIsCatModalOpen(true)}
                     className="text-xs text-[#4caf50] font-bold"
                   >
-                    + Nuova Categoria
+                    {t.nuovaCategoriaBtn}
                   </button>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   {((categories as any)[activeTab] || []).map((cat: any) => {
                     const hexColor = getColorHex(cat.color);
+                    const label = CATEGORY_LABELS[lang]?.[cat.id] ?? cat.label;
                     return (
                       <div
                         key={cat.id}
-                        onClick={() => setSelectedCategory({ ...cat, color: hexColor })}
+                        onClick={() => setSelectedCategory({ ...cat, label, color: hexColor })}
                         className={`flex flex-col items-center justify-center p-3 rounded-xl cursor-pointer transition-all border-2 ${
                           selectedCategory?.id === cat.id ? "border-[#4caf50] bg-[#3a3a3a]" : "border-transparent bg-[#1e1e1e]"
                         }`}
@@ -634,7 +885,7 @@ export default function Home() {
                         >
                           {cat.icon}
                         </div>
-                        <span className="text-xs text-center text-gray-300">{cat.label}</span>
+                        <span className="text-xs text-center text-gray-300">{label}</span>
                       </div>
                     );
                   })}
@@ -649,7 +900,7 @@ export default function Home() {
                     onClick={() => deleteTransaction(editingId)}
                     className="flex-1 py-3.5 bg-red-600/80 hover:bg-red-600 text-white rounded-xl font-bold text-sm"
                   >
-                    Elimina
+                    {t.eliminaBtn}
                   </button>
                 )}
                 <button
@@ -659,7 +910,7 @@ export default function Home() {
                     !amount || !selectedCategory ? "bg-gray-600 text-gray-400 cursor-not-allowed" : "bg-[#4caf50] text-white"
                   }`}
                 >
-                  {editingId ? "Aggiorna" : "Salva"}
+                  {editingId ? t.aggiornaBtn : t.salvaBtn}
                 </button>
               </div>
 
@@ -672,13 +923,13 @@ export default function Home() {
       {isCatModalOpen && (
         <div className="fixed inset-0 bg-black/90 z-50 flex justify-center items-center p-4">
           <div className="bg-[#2d2d2d] w-full max-w-xs p-5 rounded-2xl border border-gray-700 max-h-[90vh] flex flex-col">
-            <h3 className="text-lg font-bold mb-3">Crea Categoria ({activeTab})</h3>
+            <h3 className="text-lg font-bold mb-3">{t.creaCategoriaTitle} ({tabLabel(activeTab)})</h3>
             <form onSubmit={addCustomCategory} className="flex flex-col gap-3 flex-1 overflow-y-auto">
               <div>
-                <label className="text-xs text-gray-400 uppercase mb-1 block">Nome Categoria</label>
+                <label className="text-xs text-gray-400 uppercase mb-1 block">{t.nomeCategoriaLabel}</label>
                 <input 
                   type="text" 
-                  placeholder="Es. Palestra, Regali..." 
+                  placeholder={t.nomeCategoriaPlaceholder}
                   value={newCatName} 
                   onChange={e => setNewCatName(e.target.value)} 
                   className="bg-[#1e1e1e] border border-gray-700 p-2.5 rounded-xl text-white text-sm w-full outline-none focus:border-[#4caf50]"
@@ -687,7 +938,7 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 uppercase mb-2 block">Scegli Icona</label>
+                <label className="text-xs text-gray-400 uppercase mb-2 block">{t.scegliIconaLabel}</label>
                 <div className="grid grid-cols-6 gap-2 bg-[#1e1e1e] p-2 rounded-xl max-h-28 overflow-y-auto mb-2">
                   {PRESET_ICONS.map((icon) => (
                     <button
@@ -705,7 +956,7 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 uppercase mb-2 block">Scegli Colore</label>
+                <label className="text-xs text-gray-400 uppercase mb-2 block">{t.scegliColoreLabel}</label>
                 <div className="grid grid-cols-6 gap-2 bg-[#1e1e1e] p-2 rounded-xl mb-2">
                   {PRESET_COLORS.map((color) => (
                     <button
@@ -727,13 +978,13 @@ export default function Home() {
                   onClick={() => setIsCatModalOpen(false)}
                   className="flex-1 bg-gray-600 text-white py-2.5 rounded-xl text-sm font-medium"
                 >
-                  Annulla
+                  {t.annullaBtn}
                 </button>
                 <button 
                   type="submit"
                   className="flex-1 bg-[#4caf50] text-white py-2.5 rounded-xl font-bold text-sm"
                 >
-                  Crea
+                  {t.creaBtn}
                 </button>
               </div>
             </form>
