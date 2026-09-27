@@ -127,10 +127,17 @@ const TRANSLATIONS: Record<Lang, any> = {
     settimanaDelPrefix: "Settimana del",
     lingua: "Lingua",
     installTitle: "Installa l'app",
-    installDesc: "Aggiungila alla schermata Home per usarla come un'app vera, a schermo intero.",
-    installIosSteps: 'Tocca l\'icona di condivisione ⬆️ qui sotto, poi scegli "Aggiungi a Home".',
+    installDesc: "Aggiungila alla schermata Home per usarla a schermo intero, come un'app vera.",
+    installIosSteps: 'Cerca l\'icona "Condividi" (un quadrato con una freccia verso l\'alto ⬆️) nel tuo browser, toccala, poi scegli "Aggiungi a schermata Home". Su iPhone/iPad si trova di solito nella barra in alto o in basso a seconda del browser.',
+    installAndroidSteps: 'Tocca il menu del browser (⋮ in alto a destra) e scegli "Aggiungi a schermata Home" o "Installa app".',
     installBtn: "Installa",
     installDismiss: "Non ora",
+    backupBtn: "Backup dati",
+    esportaBtn: "Esporta backup",
+    importaBtn: "Importa backup",
+    backupDesc: "Esporta un file di backup prima di installare l'app o cambiare dispositivo, poi importalo per recuperare i tuoi dati.",
+    importSuccess: "Dati importati con successo!",
+    importError: "File non valido o corrotto. Riprova con un backup esportato da questa app.",
   },
   en: {
     patrimonioTotale: "Total Net Worth",
@@ -178,10 +185,17 @@ const TRANSLATIONS: Record<Lang, any> = {
     settimanaDelPrefix: "Week of",
     lingua: "Language",
     installTitle: "Install the app",
-    installDesc: "Add it to your Home Screen to use it like a real full-screen app.",
-    installIosSteps: 'Tap the share icon ⬆️ below, then choose "Add to Home Screen".',
+    installDesc: "Add it to your Home Screen to use it full-screen, like a real app.",
+    installIosSteps: 'Look for the "Share" icon (a square with an upward arrow ⬆️) in your browser, tap it, then choose "Add to Home Screen". On iPhone/iPad it\'s usually in the top or bottom bar depending on the browser.',
+    installAndroidSteps: 'Tap the browser menu (⋮ top right) and choose "Add to Home Screen" or "Install app".',
     installBtn: "Install",
     installDismiss: "Not now",
+    backupBtn: "Data backup",
+    esportaBtn: "Export backup",
+    importaBtn: "Import backup",
+    backupDesc: "Export a backup file before installing the app or switching device, then import it to recover your data.",
+    importSuccess: "Data imported successfully!",
+    importError: "Invalid or corrupted file. Try again with a backup exported from this app.",
   },
   pl: {
     patrimonioTotale: "Całkowity majątek",
@@ -229,10 +243,17 @@ const TRANSLATIONS: Record<Lang, any> = {
     settimanaDelPrefix: "Tydzień od",
     lingua: "Język",
     installTitle: "Zainstaluj aplikację",
-    installDesc: "Dodaj ją do ekranu głównego, aby korzystać z niej jak z prawdziwej aplikacji na pełnym ekranie.",
-    installIosSteps: 'Dotknij ikony udostępniania ⬆️ poniżej, a następnie wybierz "Dodaj do ekranu początkowego".',
+    installDesc: "Dodaj ją do ekranu głównego, aby korzystać z niej na pełnym ekranie, jak z prawdziwej aplikacji.",
+    installIosSteps: 'Znajdź ikonę "Udostępnij" (kwadrat ze strzałką w górę ⬆️) w swojej przeglądarce, dotknij jej, a następnie wybierz "Dodaj do ekranu początkowego". Na iPhonie/iPadzie zwykle znajduje się na górnym lub dolnym pasku, w zależności od przeglądarki.',
+    installAndroidSteps: 'Dotknij menu przeglądarki (⋮ w prawym górnym rogu) i wybierz "Dodaj do ekranu głównego" lub "Zainstaluj aplikację".',
     installBtn: "Zainstaluj",
     installDismiss: "Nie teraz",
+    backupBtn: "Kopia zapasowa",
+    esportaBtn: "Eksportuj kopię",
+    importaBtn: "Importuj kopię",
+    backupDesc: "Wyeksportuj plik kopii zapasowej przed instalacją aplikacji lub zmianą urządzenia, a następnie zaimportuj go, aby odzyskać dane.",
+    importSuccess: "Dane zaimportowane pomyślnie!",
+    importError: "Nieprawidłowy lub uszkodzony plik. Spróbuj ponownie z kopią zapasową wyeksportowaną z tej aplikacji.",
   },
 };
 
@@ -267,6 +288,10 @@ export default function Home() {
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [isIos, setIsIos] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  // Stato Pannello Backup (Esporta/Importa dati)
+  const [isBackupMenuOpen, setIsBackupMenuOpen] = useState(false);
+  const [importMessage, setImportMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
   const tabLabel = (tabId: string) => {
     if (tabId === "spese") return t.tabSpese;
@@ -316,13 +341,20 @@ export default function Home() {
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true;
 
-    const dismissed = localStorage.getItem("budget-install-dismissed-v7") === "true";
     const isIosDevice = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
     const isMobileDevice = /android|iphone|ipad|ipod/i.test(window.navigator.userAgent);
     setIsIos(isIosDevice);
 
-    if (!isStandalone && !dismissed && isMobileDevice) {
+    // Il banner compare ad ogni apertura finché l'app non è effettivamente
+    // installata: chiuderlo con "Non ora" lo nasconde solo per questa sessione.
+    if (!isStandalone && isMobileDevice) {
       setShowInstallBanner(true);
+    }
+
+    // Registra il Service Worker: necessario perché Chrome/Android consideri
+    // l'app "installabile" e attivi l'evento beforeinstallprompt qui sotto.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
 
     // Su Android/Chrome intercetta l'evento per mostrare un vero pulsante "Installa"
@@ -337,8 +369,9 @@ export default function Home() {
   }, []);
 
   const dismissInstallBanner = () => {
+    // Nascosto solo per la sessione corrente: ricompare alla prossima apertura
+    // dell'app, a meno che nel frattempo non venga effettivamente installata.
     setShowInstallBanner(false);
-    localStorage.setItem("budget-install-dismissed-v7", "true");
   };
 
   const handleInstallClick = async () => {
@@ -461,7 +494,53 @@ export default function Home() {
     setIsCatModalOpen(false);
   };
 
+  const exportData = () => {
+    const backup = {
+      transactions,
+      categories,
+      lang,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const dateStr = new Date().toISOString().split("T")[0];
+    a.download = `budget-backup-${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const importData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (!Array.isArray(parsed.transactions) || typeof parsed.categories !== "object") {
+          throw new Error("Formato non valido");
+        }
+        setTransactions(parsed.transactions);
+        setCategories(parsed.categories);
+        if (parsed.lang && ["it", "en", "pl"].includes(parsed.lang)) {
+          setLang(parsed.lang as Lang);
+        }
+        setImportMessage({ type: "ok", text: t.importSuccess });
+      } catch (err) {
+        setImportMessage({ type: "error", text: t.importError });
+      }
+      setTimeout(() => setImportMessage(null), 4000);
+    };
+    reader.readAsText(file);
+    e.target.value = ""; // permette di reimportare lo stesso file più volte
+  };
+
   const navigatePeriod = (direction: number) => {
+
     const newDate = new Date(viewDate);
     if (timeFrame === "giorno") {
       newDate.setDate(newDate.getDate() + direction);
@@ -563,10 +642,34 @@ export default function Home() {
     <main className="max-w-md mx-auto min-h-screen bg-[#1e1e1e] text-white font-sans flex flex-col relative">
       
       {/* HEADER */}
-      <header className="bg-[#1f3b2d] pt-6 pb-2 px-4 flex flex-col items-center shadow-md z-10 relative rounded-b-3xl">
+      <header className="bg-[#1f3b2d] pt-[calc(1.5rem+env(safe-area-inset-top))] pb-2 px-4 flex flex-col items-center shadow-md z-10 relative rounded-b-3xl">
 
-        {/* SELETTORE LINGUA */}
-        <div className="absolute top-3 right-3 z-20">
+        {/* SELETTORE LINGUA + BACKUP */}
+        <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-3 z-20 flex items-center gap-2">
+          <div className="relative">
+            <button
+              onClick={() => setIsBackupMenuOpen(!isBackupMenuOpen)}
+              className="flex items-center gap-1 bg-[#162a20] border border-green-900/40 rounded-full px-2.5 py-1 text-sm"
+            >
+              <span>💾</span>
+            </button>
+            {isBackupMenuOpen && (
+              <div className="absolute top-9 right-0 bg-[#162a20] border border-green-900/40 rounded-xl overflow-hidden shadow-xl w-56 p-3">
+                <p className="text-[11px] text-gray-400 mb-3">{t.backupDesc}</p>
+                <button
+                  onClick={exportData}
+                  className="w-full bg-[#4caf50] text-white text-xs font-bold px-3 py-2 rounded-lg mb-2"
+                >
+                  {t.esportaBtn}
+                </button>
+                <label className="w-full block bg-[#1f3b2d] text-white text-xs font-bold px-3 py-2 rounded-lg text-center cursor-pointer">
+                  {t.importaBtn}
+                  <input type="file" accept="application/json" onChange={importData} className="hidden" />
+                </label>
+              </div>
+            )}
+          </div>
+          <div className="relative">
           <button
             onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
             className="flex items-center gap-1 bg-[#162a20] border border-green-900/40 rounded-full px-2.5 py-1 text-sm"
@@ -589,6 +692,7 @@ export default function Home() {
               ))}
             </div>
           )}
+        </div>
         </div>
 
         <div className="text-center mb-2">
@@ -763,13 +867,13 @@ export default function Home() {
 
       {/* BANNER INSTALLAZIONE PWA */}
       {showInstallBanner && (
-        <div className="fixed bottom-24 left-4 right-4 z-30 bg-[#1f3b2d] border border-green-900/50 rounded-2xl p-4 shadow-2xl">
+        <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] left-4 right-4 z-30 bg-[#1f3b2d] border border-green-900/50 rounded-2xl p-4 shadow-2xl">
           <div className="flex items-start gap-3">
             <span className="text-2xl">📲</span>
             <div className="flex-1">
               <p className="font-bold text-sm text-white">{t.installTitle}</p>
               <p className="text-xs text-gray-300 mt-1">
-                {isIos ? t.installIosSteps : t.installDesc}
+                {isIos ? t.installIosSteps : deferredPrompt ? t.installDesc : t.installAndroidSteps}
               </p>
               <div className="flex gap-2 mt-3">
                 {!isIos && deferredPrompt && (
@@ -796,7 +900,7 @@ export default function Home() {
       {/* PULSANTE FLOTTANTE AGGIUNGI */}
       <button
         onClick={openNewModal}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-[#ffb74d] rounded-full flex items-center justify-center text-black shadow-xl hover:scale-105 transition-transform z-20"
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 w-14 h-14 bg-[#ffb74d] rounded-full flex items-center justify-center text-black shadow-xl hover:scale-105 transition-transform z-20"
       >
         <IconPlus />
       </button>
@@ -804,7 +908,7 @@ export default function Home() {
       {/* PULSANTE FLOTTANTE CHATBOT AI */}
       <button
         onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 left-6 w-14 h-14 bg-[#3b82f6] rounded-full flex items-center justify-center text-white text-2xl shadow-xl hover:scale-105 transition-transform z-20"
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-6 w-14 h-14 bg-[#3b82f6] rounded-full flex items-center justify-center text-white text-2xl shadow-xl hover:scale-105 transition-transform z-20"
       >
         💬
       </button>
