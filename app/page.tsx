@@ -420,6 +420,26 @@ export default function Home() {
     };
   }, []);
 
+  // Chiude i menu lingua/backup quando si tocca un punto qualsiasi fuori da essi.
+  const langMenuRef = useRef<HTMLDivElement>(null);
+  const backupMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isLangMenuOpen && !isBackupMenuOpen) return;
+
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (isLangMenuOpen && langMenuRef.current && !langMenuRef.current.contains(target)) {
+        setIsLangMenuOpen(false);
+      }
+      if (isBackupMenuOpen && backupMenuRef.current && !backupMenuRef.current.contains(target)) {
+        setIsBackupMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [isLangMenuOpen, isBackupMenuOpen]);
+
   const openNewModal = () => {
     setEditingId(null);
     setAmount("");
@@ -536,6 +556,7 @@ export default function Home() {
       setTimeout(() => setImportMessage(null), 4000);
     };
     reader.readAsText(file);
+    setIsBackupMenuOpen(false);
     e.target.value = ""; // permette di reimportare lo stesso file più volte
   };
 
@@ -639,14 +660,14 @@ export default function Home() {
   };
 
   return (
-    <main className="max-w-md mx-auto min-h-screen bg-[#1e1e1e] text-white font-sans flex flex-col relative">
+    <main className="w-full max-w-md mx-auto min-h-screen bg-[#1e1e1e] text-white font-sans flex flex-col relative">
       
       {/* HEADER */}
       <header className="bg-[#1f3b2d] pt-[calc(1.5rem+env(safe-area-inset-top))] pb-2 px-4 flex flex-col items-center shadow-md z-10 relative rounded-b-3xl">
 
         {/* SELETTORE LINGUA + BACKUP */}
         <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-3 z-20 flex items-center gap-2">
-          <div className="relative">
+          <div className="relative" ref={backupMenuRef}>
             <button
               onClick={() => setIsBackupMenuOpen(!isBackupMenuOpen)}
               className="flex items-center gap-1 bg-[#162a20] border border-green-900/40 rounded-full px-2.5 py-1 text-sm"
@@ -669,7 +690,7 @@ export default function Home() {
               </div>
             )}
           </div>
-          <div className="relative">
+          <div className="relative" ref={langMenuRef}>
           <button
             onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
             className="flex items-center gap-1 bg-[#162a20] border border-green-900/40 rounded-full px-2.5 py-1 text-sm"
@@ -864,6 +885,17 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* ESITO IMPORT BACKUP */}
+      {importMessage && (
+        <div
+          className={`fixed top-[calc(1rem+env(safe-area-inset-top))] left-4 right-4 z-50 rounded-xl px-4 py-3 text-sm font-medium shadow-2xl ${
+            importMessage.type === "ok" ? "bg-[#4caf50] text-white" : "bg-red-600 text-white"
+          }`}
+        >
+          {importMessage.text}
+        </div>
+      )}
 
       {/* BANNER INSTALLAZIONE PWA */}
       {showInstallBanner && (
