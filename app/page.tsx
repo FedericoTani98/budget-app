@@ -684,10 +684,9 @@ export default function Home() {
   };
 
   return (
-    <main
-      className="w-full max-w-md mx-auto bg-[#1e1e1e] text-white font-sans flex flex-col relative"
-      style={{ minHeight: "var(--app-min-h, 100vh)" }}
-    >
+  <main
+    className="w-full max-w-md mx-auto bg-[#2d2d2d] text-white font-sans flex flex-col relative h-[100dvh] overflow-hidden"
+  >
       
       {/* HEADER */}
       <header className="bg-[#1f3b2d] pt-[calc(1.5rem+env(safe-area-inset-top))] pb-2 px-4 flex flex-col items-center shadow-md z-10 relative rounded-b-3xl">
