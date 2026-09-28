@@ -660,7 +660,8 @@ export default function Home() {
   };
 
   return (
-    <main className="w-full max-w-md mx-auto min-h-screen bg-[#1e1e1e] text-white font-sans flex flex-col relative">
+    <div className="fixed inset-0 overflow-y-auto bg-[#1e1e1e]">
+    <main className="w-full max-w-md mx-auto min-h-full bg-[#1e1e1e] text-white font-sans flex flex-col relative">
       
       {/* HEADER */}
       <header className="bg-[#1f3b2d] pt-[calc(1.5rem+env(safe-area-inset-top))] pb-2 px-4 flex flex-col items-center shadow-md z-10 relative rounded-b-3xl">
@@ -670,20 +671,20 @@ export default function Home() {
           <div className="relative" ref={backupMenuRef}>
             <button
               onClick={() => setIsBackupMenuOpen(!isBackupMenuOpen)}
-              className="flex items-center gap-1 bg-[#162a20] border border-green-900/40 rounded-full px-2.5 py-1 text-sm"
+              className="flex items-center gap-1 bg-[#162a20] border border-green-900/40 rounded-full px-2.5 py-1 text-base"
             >
               <span>💾</span>
             </button>
             {isBackupMenuOpen && (
               <div className="absolute top-9 right-0 bg-[#162a20] border border-green-900/40 rounded-xl overflow-hidden shadow-xl w-56 p-3">
-                <p className="text-[11px] text-gray-400 mb-3">{t.backupDesc}</p>
+                <p className="text-xs text-gray-400 mb-3">{t.backupDesc}</p>
                 <button
                   onClick={exportData}
-                  className="w-full bg-[#4caf50] text-white text-xs font-bold px-3 py-2 rounded-lg mb-2"
+                  className="w-full bg-[#4caf50] text-white text-sm font-bold px-3 py-2 rounded-lg mb-2"
                 >
                   {t.esportaBtn}
                 </button>
-                <label className="w-full block bg-[#1f3b2d] text-white text-xs font-bold px-3 py-2 rounded-lg text-center cursor-pointer">
+                <label className="w-full block bg-[#1f3b2d] text-white text-sm font-bold px-3 py-2 rounded-lg text-center cursor-pointer">
                   {t.importaBtn}
                   <input type="file" accept="application/json" onChange={importData} className="hidden" />
                 </label>
@@ -693,7 +694,7 @@ export default function Home() {
           <div className="relative" ref={langMenuRef}>
           <button
             onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
-            className="flex items-center gap-1 bg-[#162a20] border border-green-900/40 rounded-full px-2.5 py-1 text-sm"
+            className="flex items-center gap-1 bg-[#162a20] border border-green-900/40 rounded-full px-2.5 py-1 text-base"
           >
             <span>{LANGUAGE_META[lang].flag}</span>
           </button>
@@ -703,7 +704,7 @@ export default function Home() {
                 <button
                   key={code}
                   onClick={() => { setLang(code); setIsLangMenuOpen(false); }}
-                  className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-[#1f3b2d] transition-colors ${
+                  className={`flex items-center gap-2 w-full px-3 py-2 text-base text-left hover:bg-[#1f3b2d] transition-colors ${
                     lang === code ? "bg-[#1f3b2d] font-bold" : ""
                   }`}
                 >
@@ -717,17 +718,17 @@ export default function Home() {
         </div>
 
         <div className="text-center mb-2">
-          <p className="text-xs text-gray-300 uppercase tracking-wider">{t.patrimonioTotale}</p>
+          <p className="text-sm text-gray-300 uppercase tracking-wider">{t.patrimonioTotale}</p>
           <h1 className="text-3xl font-bold">{patrimonioTotale.toFixed(2)} €</h1>
         </div>
 
-        <div className="flex justify-between w-full text-xs text-gray-300 bg-[#162a20] p-2 rounded-xl mb-3 border border-green-900/40">
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 w-full text-sm text-gray-300 bg-[#162a20] p-2 rounded-xl mb-3 border border-green-900/40">
           <span>💧 {t.liquidita}: <strong className="text-white">{liquidita.toFixed(2)} €</strong></span>
           <span>📈 {t.investitiLabel}: <strong className="text-blue-400">{totaleInvestiti.toFixed(2)} €</strong></span>
         </div>
 
         {/* TAB NAV */}
-        <div className="flex w-full text-sm font-semibold text-gray-400">
+        <div className="flex w-full text-base font-semibold text-gray-400">
           {["spese", "entrate", "investimenti"].map((tab) => (
             <button
               key={tab}
@@ -746,7 +747,7 @@ export default function Home() {
       <div className="flex-1 bg-[#2d2d2d] mt-2 rounded-t-3xl p-4 flex flex-col overflow-y-auto pb-24">
         
         {/* SELETTORE PERIODO */}
-        <div className="flex justify-between text-xs text-gray-400 mb-3 px-1 bg-[#1e1e1e] p-1.5 rounded-xl">
+        <div className="flex justify-between text-sm text-gray-400 mb-3 px-1 bg-[#1e1e1e] p-1.5 rounded-xl">
           {[
             { id: "giorno", label: t.periodGiorno },
             { id: "settimana", label: t.periodSettimana },
@@ -768,7 +769,7 @@ export default function Home() {
 
         {/* NAVIGAZIONE DATA */}
         {timeFrame !== "tutti" && (
-          <div className="flex justify-between items-center bg-[#1e1e1e]/60 px-4 py-2 rounded-xl mb-4 text-sm font-medium relative">
+          <div className="flex justify-between items-center bg-[#1e1e1e]/60 px-4 py-2 rounded-xl mb-4 text-base font-medium relative">
             <button onClick={() => navigatePeriod(-1)} className="p-1 hover:text-[#4caf50] text-lg font-bold">❮</button>
             <div className="relative flex items-center gap-2 cursor-pointer">
               <span className="capitalize text-gray-200">{getPeriodLabel()}</span>
@@ -780,7 +781,7 @@ export default function Home() {
                 }}
                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
               />
-              <span className="text-xs bg-[#2d2d2d] p-1 rounded-md text-gray-400">📅</span>
+              <span className="text-sm bg-[#2d2d2d] p-1 rounded-md text-gray-400">📅</span>
             </div>
             <button onClick={() => navigatePeriod(1)} className="p-1 hover:text-[#4caf50] text-lg font-bold">❯</button>
           </div>
@@ -788,7 +789,7 @@ export default function Home() {
 
         {/* CONFRONTO MACRO-CATEGORIE */}
         <div className="bg-[#1e1e1e] p-3.5 rounded-2xl mb-5 border border-gray-800">
-          <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-2 font-bold">
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 font-bold">
             {t.confrontoPeriodo} ({getPeriodLabel()})
           </p>
 
@@ -804,17 +805,17 @@ export default function Home() {
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+          <div className="grid grid-cols-3 gap-2 text-center text-sm">
             <div className="bg-[#2d2d2d] p-2 rounded-xl border-t-2 border-[#10b981]">
-              <span className="text-gray-400 text-[10px] block">{t.tabEntrate}</span>
+              <span className="text-gray-400 text-xs block">{t.tabEntrate}</span>
               <strong className="text-[#10b981]">{periodEntrate.toFixed(2)} €</strong>
             </div>
             <div className="bg-[#2d2d2d] p-2 rounded-xl border-t-2 border-[#ef4444]">
-              <span className="text-gray-400 text-[10px] block">{t.tabSpese}</span>
+              <span className="text-gray-400 text-xs block">{t.tabSpese}</span>
               <strong className="text-[#ef4444]">{periodSpese.toFixed(2)} €</strong>
             </div>
             <div className="bg-[#2d2d2d] p-2 rounded-xl border-t-2 border-[#3b82f6]">
-              <span className="text-gray-400 text-[10px] block">{t.tabInvest}</span>
+              <span className="text-gray-400 text-xs block">{t.tabInvest}</span>
               <strong className="text-[#3b82f6]">{periodInvestiti.toFixed(2)} €</strong>
             </div>
           </div>
@@ -829,7 +830,7 @@ export default function Home() {
             <div className="w-full h-full bg-[#2d2d2d] rounded-full flex items-center justify-center text-center shadow-inner">
               <div>
                 <span className="text-xl font-bold">{totaleTabAttiva.toFixed(2)} €</span>
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest">{tabLabel(activeTab)}</p>
+                <p className="text-xs text-gray-400 uppercase tracking-widest">{tabLabel(activeTab)}</p>
               </div>
             </div>
           </div>
@@ -839,7 +840,7 @@ export default function Home() {
         {categoryBreakdown.length > 0 && (
           <div className="flex flex-wrap justify-center gap-2 mb-6">
             {categoryBreakdown.map((cat) => (
-              <div key={cat.id} className="flex items-center gap-1.5 bg-[#1e1e1e] px-2.5 py-1 rounded-full text-xs">
+              <div key={cat.id} className="flex items-center gap-1.5 bg-[#1e1e1e] px-2.5 py-1 rounded-full text-sm">
                 <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: cat.color }} />
                 <span className="text-gray-300">{cat.label}:</span>
                 <strong className="text-white">{cat.percent.toFixed(0)}%</strong>
@@ -867,21 +868,21 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="font-medium text-base text-gray-100">{catData.label}</p>
-                    {tx.description && <p className="text-xs text-gray-400">{tx.description}</p>}
-                    <p className="text-[10px] text-gray-500">{tx.date}</p>
+                    {tx.description && <p className="text-sm text-gray-400">{tx.description}</p>}
+                    <p className="text-xs text-gray-500">{tx.date}</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <span className={`font-bold text-base ${tx.type === "spese" ? "text-white" : tx.type === "entrate" ? "text-[#10b981]" : "text-[#3b82f6]"}`}>
                     {tx.amount.toFixed(2)} €
                   </span>
-                  <p className="text-[10px] text-gray-500">{t.modifica}</p>
+                  <p className="text-xs text-gray-500">{t.modifica}</p>
                 </div>
               </div>
             );
           })}
           {filteredTransactions.length === 0 && (
-            <p className="text-center text-gray-500 mt-6 text-sm">{t.nessunMovimento}</p>
+            <p className="text-center text-gray-500 mt-6 text-base">{t.nessunMovimento}</p>
           )}
         </div>
       </div>
@@ -889,7 +890,7 @@ export default function Home() {
       {/* ESITO IMPORT BACKUP */}
       {importMessage && (
         <div
-          className={`fixed top-[calc(1rem+env(safe-area-inset-top))] left-4 right-4 z-50 rounded-xl px-4 py-3 text-sm font-medium shadow-2xl ${
+          className={`fixed top-[calc(1rem+env(safe-area-inset-top))] left-4 right-4 z-50 rounded-xl px-4 py-3 text-base font-medium shadow-2xl ${
             importMessage.type === "ok" ? "bg-[#4caf50] text-white" : "bg-red-600 text-white"
           }`}
         >
@@ -903,22 +904,22 @@ export default function Home() {
           <div className="flex items-start gap-3">
             <span className="text-2xl">📲</span>
             <div className="flex-1">
-              <p className="font-bold text-sm text-white">{t.installTitle}</p>
-              <p className="text-xs text-gray-300 mt-1">
+              <p className="font-bold text-base text-white">{t.installTitle}</p>
+              <p className="text-sm text-gray-300 mt-1">
                 {isIos ? t.installIosSteps : deferredPrompt ? t.installDesc : t.installAndroidSteps}
               </p>
               <div className="flex gap-2 mt-3">
                 {!isIos && deferredPrompt && (
                   <button
                     onClick={handleInstallClick}
-                    className="bg-[#4caf50] text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                    className="bg-[#4caf50] text-white text-sm font-bold px-3 py-1.5 rounded-lg"
                   >
                     {t.installBtn}
                   </button>
                 )}
                 <button
                   onClick={dismissInstallBanner}
-                  className="text-gray-400 text-xs px-3 py-1.5 rounded-lg hover:text-white"
+                  className="text-gray-400 text-sm px-3 py-1.5 rounded-lg hover:text-white"
                 >
                   {t.installDismiss}
                 </button>
@@ -955,17 +956,17 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <span className="text-2xl">🤖</span>
                 <div>
-                  <h3 className="font-bold text-sm">{t.assistenteFinanziario}</h3>
-                  <p className="text-[10px] text-gray-400">{t.analizzaDati}</p>
+                  <h3 className="font-bold text-base">{t.assistenteFinanziario}</h3>
+                  <p className="text-xs text-gray-400">{t.analizzaDati}</p>
                 </div>
               </div>
               <button onClick={() => setIsChatOpen(false)} className="text-gray-400 p-2 text-lg">✕</button>
             </div>
 
             {/* MESSAGGI CHAT */}
-            <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-3 text-sm">
+            <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-3 text-base">
               {messages.length === 0 && (
-                <div className="text-center text-gray-400 text-xs my-auto p-4 bg-[#1e1e1e] rounded-2xl">
+                <div className="text-center text-gray-400 text-sm my-auto p-4 bg-[#1e1e1e] rounded-2xl">
                   {t.chatWelcome}<br/><br/>
                   <span className="italic text-gray-500">{t.chatExample}</span>
                 </div>
@@ -989,7 +990,7 @@ export default function Home() {
               ))}
 
               {isLoading && (
-                <div className="bg-[#1e1e1e] text-gray-400 p-3 rounded-2xl rounded-bl-none self-start text-xs border border-gray-700 animate-pulse">
+                <div className="bg-[#1e1e1e] text-gray-400 p-3 rounded-2xl rounded-bl-none self-start text-sm border border-gray-700 animate-pulse">
                   {t.analizzando}
                 </div>
               )}
@@ -1011,12 +1012,12 @@ export default function Home() {
                 value={chatText}
                 onChange={(e) => setChatText(e.target.value)}
                 placeholder={t.chatPlaceholder}
-                className="flex-1 bg-[#1e1e1e] border border-gray-700 p-3 rounded-xl text-white text-sm outline-none focus:border-[#3b82f6]"
+                className="flex-1 bg-[#1e1e1e] border border-gray-700 p-3 rounded-xl text-white text-base outline-none focus:border-[#3b82f6]"
               />
               <button
                 type="submit"
                 disabled={isLoading || !chatText.trim()}
-                className={`px-4 rounded-xl font-bold text-sm transition-colors ${
+                className={`px-4 rounded-xl font-bold text-base transition-colors ${
                   isLoading || !chatText.trim()
                     ? "bg-gray-600 text-gray-400 cursor-not-allowed" 
                     : "bg-[#3b82f6] hover:bg-blue-600 text-white"
@@ -1047,7 +1048,7 @@ export default function Home() {
               
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-gray-400 uppercase mb-1 block">{t.importoLabel}</label>
+                  <label className="text-sm text-gray-400 uppercase mb-1 block">{t.importoLabel}</label>
                   <input
                     type="number"
                     step="0.01"
@@ -1060,36 +1061,36 @@ export default function Home() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 uppercase mb-1 block">{t.dataLabel}</label>
+                  <label className="text-sm text-gray-400 uppercase mb-1 block">{t.dataLabel}</label>
                   <input
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="bg-[#1e1e1e] border border-[#3a3a3a] p-3 rounded-xl text-white text-sm w-full outline-none focus:border-[#4caf50]"
+                    className="bg-[#1e1e1e] border border-[#3a3a3a] p-3 rounded-xl text-white text-base w-full outline-none focus:border-[#4caf50]"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 uppercase mb-1 block">{t.descrizioneLabel}</label>
+                <label className="text-sm text-gray-400 uppercase mb-1 block">{t.descrizioneLabel}</label>
                 <input
                   type="text"
                   placeholder={t.descrizionePlaceholder}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="bg-[#1e1e1e] border border-[#3a3a3a] p-3 rounded-xl text-white text-sm w-full outline-none focus:border-[#4caf50]"
+                  className="bg-[#1e1e1e] border border-[#3a3a3a] p-3 rounded-xl text-white text-base w-full outline-none focus:border-[#4caf50]"
                 />
               </div>
 
               {/* SELEZIONE CATEGORIA */}
               <div className="flex-1 overflow-y-auto">
                 <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs text-gray-400 uppercase block">{t.selezionaCategoria}</label>
+                  <label className="text-sm text-gray-400 uppercase block">{t.selezionaCategoria}</label>
                   <button 
                     type="button" 
                     onClick={() => setIsCatModalOpen(true)}
-                    className="text-xs text-[#4caf50] font-bold"
+                    className="text-sm text-[#4caf50] font-bold"
                   >
                     {t.nuovaCategoriaBtn}
                   </button>
@@ -1113,7 +1114,7 @@ export default function Home() {
                         >
                           {cat.icon}
                         </div>
-                        <span className="text-xs text-center text-gray-300">{label}</span>
+                        <span className="text-sm text-center text-gray-300">{label}</span>
                       </div>
                     );
                   })}
@@ -1126,7 +1127,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => deleteTransaction(editingId)}
-                    className="flex-1 py-3.5 bg-red-600/80 hover:bg-red-600 text-white rounded-xl font-bold text-sm"
+                    className="flex-1 py-3.5 bg-red-600/80 hover:bg-red-600 text-white rounded-xl font-bold text-base"
                   >
                     {t.eliminaBtn}
                   </button>
@@ -1154,19 +1155,19 @@ export default function Home() {
             <h3 className="text-lg font-bold mb-3">{t.creaCategoriaTitle} ({tabLabel(activeTab)})</h3>
             <form onSubmit={addCustomCategory} className="flex flex-col gap-3 flex-1 overflow-y-auto">
               <div>
-                <label className="text-xs text-gray-400 uppercase mb-1 block">{t.nomeCategoriaLabel}</label>
+                <label className="text-sm text-gray-400 uppercase mb-1 block">{t.nomeCategoriaLabel}</label>
                 <input 
                   type="text" 
                   placeholder={t.nomeCategoriaPlaceholder}
                   value={newCatName} 
                   onChange={e => setNewCatName(e.target.value)} 
-                  className="bg-[#1e1e1e] border border-gray-700 p-2.5 rounded-xl text-white text-sm w-full outline-none focus:border-[#4caf50]"
+                  className="bg-[#1e1e1e] border border-gray-700 p-2.5 rounded-xl text-white text-base w-full outline-none focus:border-[#4caf50]"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 uppercase mb-2 block">{t.scegliIconaLabel}</label>
+                <label className="text-sm text-gray-400 uppercase mb-2 block">{t.scegliIconaLabel}</label>
                 <div className="grid grid-cols-6 gap-2 bg-[#1e1e1e] p-2 rounded-xl max-h-28 overflow-y-auto mb-2">
                   {PRESET_ICONS.map((icon) => (
                     <button
@@ -1184,7 +1185,7 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 uppercase mb-2 block">{t.scegliColoreLabel}</label>
+                <label className="text-sm text-gray-400 uppercase mb-2 block">{t.scegliColoreLabel}</label>
                 <div className="grid grid-cols-6 gap-2 bg-[#1e1e1e] p-2 rounded-xl mb-2">
                   {PRESET_COLORS.map((color) => (
                     <button
@@ -1204,13 +1205,13 @@ export default function Home() {
                 <button 
                   type="button" 
                   onClick={() => setIsCatModalOpen(false)}
-                  className="flex-1 bg-gray-600 text-white py-2.5 rounded-xl text-sm font-medium"
+                  className="flex-1 bg-gray-600 text-white py-2.5 rounded-xl text-base font-medium"
                 >
                   {t.annullaBtn}
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 bg-[#4caf50] text-white py-2.5 rounded-xl font-bold text-sm"
+                  className="flex-1 bg-[#4caf50] text-white py-2.5 rounded-xl font-bold text-base"
                 >
                   {t.creaBtn}
                 </button>
@@ -1221,5 +1222,6 @@ export default function Home() {
       )}
 
     </main>
+    </div>
   );
 }
