@@ -440,6 +440,30 @@ export default function Home() {
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [isLangMenuOpen, isBackupMenuOpen]);
 
+  // Altezza minima dell'app: su iPhone/iPad in modalità app installata, 100vh può
+  // risultare più corto dello schermo reale, lasciando una fascia scura in basso.
+  // Qui prendiamo il valore più alto tra viewport e schermo (solo iOS, in verticale).
+  useEffect(() => {
+    const updateAppHeight = () => {
+      const ua = window.navigator.userAgent;
+      const isIosDevice = /iphone|ipad|ipod/i.test(ua);
+      const isStandalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone === true;
+      const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+      const screenH = isIosDevice && isStandalone && isPortrait ? window.screen.height : 0;
+      const h = Math.max(window.innerHeight, screenH);
+      document.documentElement.style.setProperty("--app-min-h", `${h}px`);
+    };
+    updateAppHeight();
+    window.addEventListener("resize", updateAppHeight);
+    window.addEventListener("orientationchange", updateAppHeight);
+    return () => {
+      window.removeEventListener("resize", updateAppHeight);
+      window.removeEventListener("orientationchange", updateAppHeight);
+    };
+  }, []);
+
   const openNewModal = () => {
     setEditingId(null);
     setAmount("");
@@ -660,8 +684,10 @@ export default function Home() {
   };
 
   return (
-    <div className="fixed inset-0 overflow-y-auto bg-[#1e1e1e]">
-    <main className="w-full max-w-md mx-auto min-h-full bg-[#1e1e1e] text-white font-sans flex flex-col relative">
+    <main
+      className="w-full max-w-md mx-auto bg-[#1e1e1e] text-white font-sans flex flex-col relative"
+      style={{ minHeight: "var(--app-min-h, 100vh)" }}
+    >
       
       {/* HEADER */}
       <header className="bg-[#1f3b2d] pt-[calc(1.5rem+env(safe-area-inset-top))] pb-2 px-4 flex flex-col items-center shadow-md z-10 relative rounded-b-3xl">
@@ -1222,6 +1248,5 @@ export default function Home() {
       )}
 
     </main>
-    </div>
   );
 }

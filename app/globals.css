@@ -12,10 +12,22 @@
   --font-mono: var(--font-geist-mono);
 }
 
-html, body {
+html,
+body {
   background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
-  height: 100%;
+  /* Niente effetto "rimbalzo": evita di poter trascinare la pagina oltre i bordi */
+  overscroll-behavior-y: none;
+}
+
+/* Sui telefoni lo sfondo della pagina è dello stesso grigio del pannello centrale:
+   se resta anche solo una piccola fascia sotto l'app, non si nota. */
+@media (max-width: 500px) {
+  html,
+  body {
+    background: #2d2d2d;
+  }
 }
