@@ -13,7 +13,8 @@ const IconPlus = () => (
 const PRESET_ICONS = [
   "🛒", "🧾", "🍔", "👕", "⛱️", "🚗", "🏠", "💡", 
   "💊", "🎮", "🏋️", "📱", "🎁", "✈️", "☕", "🎓", 
-  "🐾", "💼", "💸", "📈", "₿", "👴", "🛠️", "🎬"
+  "🐾", "💼", "💸", "📈", "₿", "👴", "🛠️", "🎬",
+  "📁", "📄", "🗑️", "📦", "🏷️", "🍕"
 ];
 
 const PRESET_COLORS = [
@@ -30,39 +31,45 @@ const DEFAULT_CATEGORIES = {
     { id: "shopping", label: "Shopping", icon: "👕", color: "#3b82f6" },
     { id: "vacanza", label: "Vacanza", icon: "⛱️", color: "#eab308" },
     { id: "auto", label: "Auto/Trasporti", icon: "🚗", color: "#64748b" },
+    { id: "altro", label: "Altro", icon: "📁", color: "#64748b" },
   ],
   entrate: [
     { id: "stipendio", label: "Stipendio", icon: "💼", color: "#10b981" },
     { id: "rimborsi", label: "Rimborsi", icon: "💸", color: "#06b6d4" },
     { id: "regali", label: "Regali", icon: "🎁", color: "#ec4899" },
+    { id: "altro", label: "Altro", icon: "📁", color: "#64748b" },
   ],
   investimenti: [
     { id: "etf", label: "Azioni/ETF", icon: "📈", color: "#3b82f6" },
     { id: "crypto", label: "Crypto", icon: "₿", color: "#eab308" },
     { id: "fondo", label: "Fondo Pensione", icon: "👴", color: "#a855f7" },
+    { id: "altro", label: "Altro", icon: "📁", color: "#64748b" },
   ]
 };
 
 // Traduzioni delle etichette delle categorie di default (id -> label per lingua).
-// Le categorie create dall'utente mantengono invece il nome esatto digitato.
+// Le categorie create o personalizzate dall'utente mantengono invece il nome digitato.
 const CATEGORY_LABELS: Record<string, Record<string, string>> = {
   it: {
     alimentari: "Alimentari", bollette: "Bollette", uscite: "Uscite fuori",
     shopping: "Shopping", vacanza: "Vacanza", auto: "Auto/Trasporti",
     stipendio: "Stipendio", rimborsi: "Rimborsi", regali: "Regali",
     etf: "Azioni/ETF", crypto: "Crypto", fondo: "Fondo Pensione",
+    altro: "Altro",
   },
   en: {
     alimentari: "Groceries", bollette: "Bills", uscite: "Dining Out",
     shopping: "Shopping", vacanza: "Vacation", auto: "Car/Transport",
     stipendio: "Salary", rimborsi: "Reimbursements", regali: "Gifts",
     etf: "Stocks/ETF", crypto: "Crypto", fondo: "Pension Fund",
+    altro: "Other",
   },
   pl: {
     alimentari: "Zakupy spożywcze", bollette: "Rachunki", uscite: "Jedzenie na mieście",
     shopping: "Zakupy", vacanza: "Wakacje", auto: "Samochód/Transport",
     stipendio: "Wynagrodzenie", rimborsi: "Zwroty", regali: "Prezenty",
     etf: "Akcje/ETF", crypto: "Krypto", fondo: "Fundusz emerytalny",
+    altro: "Inne",
   },
 };
 
@@ -138,6 +145,14 @@ const TRANSLATIONS: Record<Lang, any> = {
     backupDesc: "Esporta un file di backup prima di installare l'app o cambiare dispositivo, poi importalo per recuperare i tuoi dati.",
     importSuccess: "Dati importati con successo!",
     importError: "File non valido o corrotto. Riprova con un backup esportato da questa app.",
+    modificaCategoriaTitle: "Modifica Categoria",
+    eliminaCategoriaBtn: "Elimina Categoria",
+    confermaEliminaCatTitle: "Elimina Categoria",
+    confermaEliminaCatMsg: (count: number, label: string) =>
+      count > 0
+        ? `Sei sicuro di voler eliminare la categoria "${label}"? Ci sono ${count} ${count === 1 ? "movimento associato che verrà spostato" : "movimenti associati che verranno spostati"} nella categoria "Altro".`
+        : `Sei sicuro di voler eliminare la categoria "${label}"?`,
+    nonEliminabile: "Categoria predefinita non eliminabile",
   },
   en: {
     patrimonioTotale: "Total Net Worth",
@@ -196,6 +211,14 @@ const TRANSLATIONS: Record<Lang, any> = {
     backupDesc: "Export a backup file before installing the app or switching device, then import it to recover your data.",
     importSuccess: "Data imported successfully!",
     importError: "Invalid or corrupted file. Try again with a backup exported from this app.",
+    modificaCategoriaTitle: "Edit Category",
+    eliminaCategoriaBtn: "Delete Category",
+    confermaEliminaCatTitle: "Delete Category",
+    confermaEliminaCatMsg: (count: number, label: string) =>
+      count > 0
+        ? `Are you sure you want to delete the category "${label}"? There are ${count} associated ${count === 1 ? "transaction that will be moved" : "transactions that will be moved"} to the "Other" category.`
+        : `Are you sure you want to delete the category "${label}"?`,
+    nonEliminabile: "Default category cannot be deleted",
   },
   pl: {
     patrimonioTotale: "Całkowity majątek",
@@ -254,7 +277,34 @@ const TRANSLATIONS: Record<Lang, any> = {
     backupDesc: "Wyeksportuj plik kopii zapasowej przed instalacją aplikacji lub zmianą urządzenia, a następnie zaimportuj go, aby odzyskać dane.",
     importSuccess: "Dane zaimportowane pomyślnie!",
     importError: "Nieprawidłowy lub uszkodzony plik. Spróbuj ponownie z kopią zapasową wyeksportowaną z tej aplikacji.",
+    modificaCategoriaTitle: "Edytuj kategorię",
+    eliminaCategoriaBtn: "Usuń kategorię",
+    confermaEliminaCatTitle: "Usuń kategorię",
+    confermaEliminaCatMsg: (count: number, label: string) =>
+      count > 0
+        ? `Czy na pewno chcesz usunąć kategorię „${label}”? Liczba powiązanych transakcji: ${count} – zostaną przeniesione do kategorii „Inne”.`
+        : `Czy na pewno chcesz usunąć kategorię „${label}”?`,
+    nonEliminabile: "Domyślna kategoria (nie można usunąć)",
   },
+};
+
+const ensureAltroCategory = (cats: any) => {
+  if (!cats || typeof cats !== "object") return DEFAULT_CATEGORIES;
+  const result: any = { ...cats };
+  const types = ["spese", "entrate", "investimenti"] as const;
+  types.forEach((type) => {
+    const list = Array.isArray(result[type]) ? [...result[type]] : [];
+    if (!list.some((c: any) => c.id === "altro")) {
+      list.push({
+        id: "altro",
+        label: "Altro",
+        icon: "📁",
+        color: "#64748b",
+      });
+    }
+    result[type] = list;
+  });
+  return result;
 };
 
 const getColorHex = (colorStr: string) => {
@@ -307,11 +357,16 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
-  // Stato Modale Categoria
+  // Stato Modale Categoria (Crea o Modifica)
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatIcon, setNewCatIcon] = useState("🏷️");
-  const [newCatColor, setNewCatColor] = useState("#a855f7");
+  const [editingCat, setEditingCat] = useState<any | null>(null);
+  const [catName, setCatName] = useState("");
+  const [catIcon, setCatIcon] = useState("🏷️");
+  const [catColor, setCatColor] = useState("#a855f7");
+
+  // Stato Modale Conferma Eliminazione Categoria
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [catToDelete, setCatToDelete] = useState<any | null>(null);
 
   // Stato Modale Chat AI
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -332,7 +387,16 @@ export default function Home() {
     const savedCat = localStorage.getItem("budget-cat-v7");
     const savedLang = localStorage.getItem("budget-lang-v7");
     if (savedTx) { try { setTransactions(JSON.parse(savedTx)); } catch (e) {} }
-    if (savedCat) { try { setCategories(JSON.parse(savedCat)); } catch (e) {} }
+    if (savedCat) {
+      try {
+        const parsed = JSON.parse(savedCat);
+        setCategories(ensureAltroCategory(parsed));
+      } catch (e) {
+        setCategories(ensureAltroCategory(DEFAULT_CATEGORIES));
+      }
+    } else {
+      setCategories(ensureAltroCategory(DEFAULT_CATEGORIES));
+    }
     if (savedLang && ["it", "en", "pl"].includes(savedLang)) { setLang(savedLang as Lang); }
     setMounted(true);
 
@@ -517,25 +581,125 @@ export default function Home() {
     setIsModalOpen(false);
   };
 
-  const addCustomCategory = (e: any) => {
+  const openNewCategoryModal = () => {
+    setEditingCat(null);
+    setCatName("");
+    setCatIcon("🏷️");
+    setCatColor("#a855f7");
+    setIsCatModalOpen(true);
+  };
+
+  const openEditCategoryModal = (cat: any) => {
+    const currentLabel = getCategoryLabel(cat);
+    setEditingCat(cat);
+    setCatName(currentLabel);
+    setCatIcon(cat.icon || "🏷️");
+    setCatColor(getColorHex(cat.color));
+    setIsCatModalOpen(true);
+  };
+
+  const saveCategory = (e: any) => {
     e.preventDefault();
-    if (!newCatName) return;
+    const trimmed = catName.trim();
+    if (!trimmed) return;
 
-    const newCat = {
-      id: `custom-${Date.now()}`,
-      label: newCatName.trim(),
-      icon: newCatIcon || "🏷️",
-      color: newCatColor
-    };
+    const currentList = (categories as any)[activeTab] || [];
 
+    if (editingCat) {
+      const updatedList = currentList.map((c: any) => {
+        if (c.id === editingCat.id) {
+          return {
+            ...c,
+            label: trimmed,
+            icon: catIcon || "🏷️",
+            color: catColor,
+            isEdited: true,
+          };
+        }
+        return c;
+      });
+
+      setCategories({
+        ...categories,
+        [activeTab]: updatedList,
+      });
+
+      if (selectedCategory?.id === editingCat.id) {
+        setSelectedCategory({
+          ...editingCat,
+          label: trimmed,
+          icon: catIcon || "🏷️",
+          color: catColor,
+          isEdited: true,
+        });
+      }
+    } else {
+      const newCat = {
+        id: `custom-${Date.now()}`,
+        label: trimmed,
+        icon: catIcon || "🏷️",
+        color: catColor,
+        isEdited: true,
+      };
+
+      setCategories({
+        ...categories,
+        [activeTab]: [...currentList, newCat],
+      });
+
+      setSelectedCategory(newCat);
+    }
+
+    setIsCatModalOpen(false);
+    setEditingCat(null);
+  };
+
+  const requestDeleteCategory = (cat: any) => {
+    if (cat.id === "altro") return;
+    setCatToDelete(cat);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteCategory = () => {
+    if (!catToDelete || catToDelete.id === "altro") return;
+    const catId = catToDelete.id;
+    const targetId = "altro";
+
+    // 1. Sposta le transazioni della categoria su "altro"
+    const updatedTx = transactions.map((tx) => {
+      if (tx.type === activeTab && tx.categoryId === catId) {
+        return { ...tx, categoryId: targetId };
+      }
+      return tx;
+    });
+    setTransactions(updatedTx);
+
+    // 2. Rimuovi la categoria da categories
+    const currentList = (categories as any)[activeTab] || [];
+    const updatedList = currentList.filter((c: any) => c.id !== catId);
     setCategories({
       ...categories,
-      [activeTab]: [...(categories as any)[activeTab], newCat]
+      [activeTab]: updatedList,
     });
 
-    setSelectedCategory(newCat);
-    setNewCatName("");
+    // 3. Se era selezionata nella modale transazione, aggiorna a "altro"
+    if (selectedCategory?.id === catId) {
+      const altroCat = updatedList.find((c: any) => c.id === targetId);
+      if (altroCat) {
+        setSelectedCategory({
+          ...altroCat,
+          label: getCategoryLabel(altroCat),
+          color: getColorHex(altroCat.color),
+        });
+      } else {
+        setSelectedCategory(null);
+      }
+    }
+
+    setIsDeleteConfirmOpen(false);
+    setCatToDelete(null);
     setIsCatModalOpen(false);
+    setEditingCat(null);
   };
 
   const exportData = () => {
@@ -569,7 +733,7 @@ export default function Home() {
           throw new Error("Formato non valido");
         }
         setTransactions(parsed.transactions);
-        setCategories(parsed.categories);
+        setCategories(ensureAltroCategory(parsed.categories));
         if (parsed.lang && ["it", "en", "pl"].includes(parsed.lang)) {
           setLang(parsed.lang as Lang);
         }
@@ -599,19 +763,29 @@ export default function Home() {
     setViewDate(newDate);
   };
 
-  if (!mounted) return null;
+  // Restituisce l'etichetta della categoria: nome personalizzato se modificata o creata,
+  // altrimenti traduzione per le categorie di default.
+  const getCategoryLabel = (cat: any) => {
+    if (!cat) return "";
+    if (cat.isEdited) return cat.label;
+    return CATEGORY_LABELS[lang]?.[cat.id] ?? cat.label;
+  };
 
-  // Restituisce l'etichetta della categoria tradotta (se è una categoria di default),
-  // altrimenti il nome esatto digitato dall'utente per le categorie custom.
   const getCategoryData = (type: string, categoryId: string) => {
     const list = (categories as any)[type] || [];
     const cat = list.find((c: any) => c.id === categoryId);
     if (cat) {
-      const translatedLabel = CATEGORY_LABELS[lang]?.[cat.id] ?? cat.label;
-      return { ...cat, label: translatedLabel, color: getColorHex(cat.color) };
+      const label = getCategoryLabel(cat);
+      return { ...cat, label, color: getColorHex(cat.color) };
+    }
+    if (categoryId === "altro") {
+      const label = CATEGORY_LABELS[lang]?.["altro"] ?? "Altro";
+      return { id: "altro", label, icon: "📁", color: "#64748b" };
     }
     return { id: categoryId, label: categoryId, icon: "❓", color: "#64748b" };
   };
+
+  if (!mounted) return null;
 
   const filteredByPeriod = transactions.filter(tx => {
     if (!tx.date) return true;
@@ -1114,7 +1288,7 @@ export default function Home() {
                   <label className="text-sm text-gray-400 uppercase block">{t.selezionaCategoria}</label>
                   <button 
                     type="button" 
-                    onClick={() => setIsCatModalOpen(true)}
+                    onClick={openNewCategoryModal}
                     className="text-sm text-[#4caf50] font-bold"
                   >
                     {t.nuovaCategoriaBtn}
@@ -1124,22 +1298,39 @@ export default function Home() {
                 <div className="grid grid-cols-3 gap-2">
                   {((categories as any)[activeTab] || []).map((cat: any) => {
                     const hexColor = getColorHex(cat.color);
-                    const label = CATEGORY_LABELS[lang]?.[cat.id] ?? cat.label;
+                    const label = getCategoryLabel(cat);
                     return (
                       <div
                         key={cat.id}
                         onClick={() => setSelectedCategory({ ...cat, label, color: hexColor })}
-                        className={`flex flex-col items-center justify-center p-3 rounded-xl cursor-pointer transition-all border-2 ${
+                        className={`flex flex-col items-center justify-center p-3 rounded-xl cursor-pointer transition-all border-2 relative ${
                           selectedCategory?.id === cat.id ? "border-[#4caf50] bg-[#3a3a3a]" : "border-transparent bg-[#1e1e1e]"
                         }`}
                       >
+                        {/* Bottone Modifica Categoria */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditCategoryModal(cat);
+                          }}
+                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/40 hover:bg-black/80 active:scale-90 flex items-center justify-center text-gray-400 hover:text-white transition-all z-10"
+                          title={t.modificaCategoriaBtn || t.modifica}
+                          aria-label={`${t.modifica} ${label}`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                            <path d="m15 5 4 4" />
+                          </svg>
+                        </button>
+
                         <div 
                           className="w-8 h-8 rounded-full flex items-center justify-center text-lg mb-1 shadow-md"
                           style={{ backgroundColor: hexColor }}
                         >
                           {cat.icon}
                         </div>
-                        <span className="text-sm text-center text-gray-300">{label}</span>
+                        <span className="text-sm text-center text-gray-300 truncate max-w-[85px]">{label}</span>
                       </div>
                     );
                   })}
@@ -1173,21 +1364,34 @@ export default function Home() {
         </div>
       )}
 
-      {/* MODALE CREAZIONE NUOVA CATEGORIA */}
+      {/* MODALE CREAZIONE / MODIFICA CATEGORIA */}
       {isCatModalOpen && (
         <div className="fixed inset-0 bg-black/90 z-50 flex justify-center items-center p-4">
-          <div className="bg-[#2d2d2d] w-full max-w-xs p-5 rounded-2xl border border-gray-700 max-h-[90vh] flex flex-col">
-            <h3 className="text-lg font-bold mb-3">{t.creaCategoriaTitle} ({tabLabel(activeTab)})</h3>
-            <form onSubmit={addCustomCategory} className="flex flex-col gap-3 flex-1 overflow-y-auto">
+          <div className="bg-[#2d2d2d] w-full max-w-xs p-5 rounded-2xl border border-gray-700 max-h-[90vh] flex flex-col shadow-2xl">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-bold">
+                {editingCat ? t.modificaCategoriaTitle : t.creaCategoriaTitle} ({tabLabel(activeTab)})
+              </h3>
+              <button
+                type="button"
+                onClick={() => { setIsCatModalOpen(false); setEditingCat(null); }}
+                className="text-gray-400 p-1 hover:text-white text-lg leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={saveCategory} className="flex flex-col gap-3 flex-1 overflow-y-auto">
               <div>
                 <label className="text-sm text-gray-400 uppercase mb-1 block">{t.nomeCategoriaLabel}</label>
                 <input 
                   type="text" 
                   placeholder={t.nomeCategoriaPlaceholder}
-                  value={newCatName} 
-                  onChange={e => setNewCatName(e.target.value)} 
+                  value={catName} 
+                  onChange={e => setCatName(e.target.value)} 
                   className="bg-[#1e1e1e] border border-gray-700 p-2.5 rounded-xl text-white text-base w-full outline-none focus:border-[#4caf50]"
                   required
+                  autoFocus
                 />
               </div>
 
@@ -1198,9 +1402,9 @@ export default function Home() {
                     <button
                       key={icon}
                       type="button"
-                      onClick={() => setNewCatIcon(icon)}
+                      onClick={() => setCatIcon(icon)}
                       className={`text-xl p-1 rounded-lg transition-all ${
-                        newCatIcon === icon ? "bg-[#4caf50] scale-110" : "hover:bg-[#3a3a3a]"
+                        catIcon === icon ? "bg-[#4caf50] scale-110" : "hover:bg-[#3a3a3a]"
                       }`}
                     >
                       {icon}
@@ -1216,9 +1420,9 @@ export default function Home() {
                     <button
                       key={color}
                       type="button"
-                      onClick={() => setNewCatColor(color)}
+                      onClick={() => setCatColor(color)}
                       className={`w-7 h-7 rounded-full transition-transform ${
-                        newCatColor === color ? "ring-2 ring-white scale-110" : ""
+                        catColor === color ? "ring-2 ring-white scale-110" : ""
                       }`}
                       style={{ backgroundColor: color }}
                     />
@@ -1226,22 +1430,77 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-3 pt-2 border-t border-gray-700">
-                <button 
-                  type="button" 
-                  onClick={() => setIsCatModalOpen(false)}
-                  className="flex-1 bg-gray-600 text-white py-2.5 rounded-xl text-base font-medium"
-                >
-                  {t.annullaBtn}
-                </button>
-                <button 
-                  type="submit"
-                  className="flex-1 bg-[#4caf50] text-white py-2.5 rounded-xl font-bold text-base"
-                >
-                  {t.creaBtn}
-                </button>
+              {/* Se categoria "altro", avviso non eliminabile */}
+              {editingCat?.id === "altro" && (
+                <p className="text-xs text-gray-400 italic bg-[#1e1e1e] p-2 rounded-lg text-center">
+                  🛡️ {t.nonEliminabile}
+                </p>
+              )}
+
+              <div className="flex flex-col gap-2 mt-3 pt-2 border-t border-gray-700">
+                <div className="flex gap-2">
+                  <button 
+                    type="button" 
+                    onClick={() => { setIsCatModalOpen(false); setEditingCat(null); }}
+                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2.5 rounded-xl text-base font-medium transition-colors"
+                  >
+                    {t.annullaBtn}
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-1 bg-[#4caf50] hover:bg-green-600 text-white py-2.5 rounded-xl font-bold text-base transition-colors"
+                  >
+                    {editingCat ? t.salvaBtn : t.creaBtn}
+                  </button>
+                </div>
+
+                {/* Tasto elimina se categoria modificabile e diversa da "altro" */}
+                {editingCat && editingCat.id !== "altro" && (
+                  <button
+                    type="button"
+                    onClick={() => requestDeleteCategory(editingCat)}
+                    className="w-full bg-red-600/80 hover:bg-red-600 text-white py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <span>🗑️</span>
+                    <span>{t.eliminaCategoriaBtn}</span>
+                  </button>
+                )}
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODALE CONFERMA ELIMINAZIONE CATEGORIA */}
+      {isDeleteConfirmOpen && catToDelete && (
+        <div className="fixed inset-0 bg-black/90 z-[60] flex justify-center items-center p-4">
+          <div className="bg-[#2d2d2d] w-full max-w-xs p-5 rounded-2xl border border-red-900/60 shadow-2xl flex flex-col gap-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-2 text-red-400">
+              <span className="text-2xl">⚠️</span>
+              <h3 className="text-lg font-bold text-white">{t.confermaEliminaCatTitle}</h3>
+            </div>
+            <p className="text-sm text-gray-300 leading-relaxed">
+              {t.confermaEliminaCatMsg(
+                transactions.filter((tx) => tx.type === activeTab && tx.categoryId === catToDelete.id).length,
+                getCategoryLabel(catToDelete)
+              )}
+            </p>
+            <div className="flex gap-2 pt-2 border-t border-gray-700">
+              <button
+                type="button"
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2.5 rounded-xl text-sm font-medium transition-colors"
+              >
+                {t.annullaBtn}
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteCategory}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-bold transition-colors"
+              >
+                {t.eliminaBtn}
+              </button>
+            </div>
           </div>
         </div>
       )}
