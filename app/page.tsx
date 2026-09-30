@@ -398,7 +398,6 @@ export default function Home() {
       };
 
       setTransactions((prev) => [newTx, ...prev]);
-      return { success: true, message: `Transazione di ${args.amount}€ aggiunta!` };
     }
   },
 
