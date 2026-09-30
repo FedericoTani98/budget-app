@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 
+
+
 const IconPlus = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -373,14 +375,54 @@ export default function Home() {
   const [chatText, setChatText] = useState("");
 
   // Vercel AI SDK Hook (transport + body dinamico, include la lingua per l'assistente)
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: () => ({ transactions, language: lang }),
     }),
+    onToolCall({ toolCall }) {
+    if (toolCall.toolName === 'addTransaction') {
+      const args = toolCall.args as { type: string; amount: number; description: string; categoryId?: string };
+      const targetCategories = (categories as any)[args.type] || [];
+      const catId = args.categoryId && targetCategories.some((c: any) => c.id === args.categoryId)
+        ? args.categoryId
+        : targetCategories[0]?.id || 'altro';
+
+      const newTx = {
+        id: Date.now(),
+        amount: Number(args.amount),
+        type: args.type,
+        categoryId: catId,
+        description: args.description || '',
+        date: new Date().toISOString().split('T')[0],
+      };
+
+      setTransactions((prev) => [newTx, ...prev]);
+      return { success: true, message: `Transazione di ${args.amount}€ aggiunta!` };
+    }
+  },
+
   });
 
+
+
   const isLoading = status === "submitted" || status === "streaming";
+
+  const [responseTime, setResponseTime] = useState<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (status === "submitted" || status === "streaming") {
+      if (!startTimeRef.current) {
+        startTimeRef.current = performance.now();
+        setResponseTime(null);
+      }
+    } else if (status === "ready" && startTimeRef.current) {
+      const duration = (performance.now() - startTimeRef.current) / 1000;
+      setResponseTime(Number(duration.toFixed(2)));
+      startTimeRef.current = null;
+    }
+  }, [status]);
 
   useEffect(() => {
     const savedTx = localStorage.getItem("budget-dati-v7");
@@ -1194,7 +1236,22 @@ export default function Home() {
                 </div>
               )}
             </div>
+            {error && (
+              <div className="mx-3 my-2 p-3 bg-red-900/60 border border-red-600 text-red-200 rounded-xl text-xs">
+                <span className="font-bold">⚠ Errore di comunicazione:</span> {error.message}
+              </div>
+            )}
+            {status === 'submitted' || status === 'streaming' ? (
+              <div className="mx-3 my-1 text-gray-400 text-xs italic animate-pulse px-2">
+               L'assistente sta elaborando la risposta...
+              </div>
+            ) : null}
 
+            {responseTime !== null && status === "ready" && (
+              <div className="text-center text-xs text-zinc-400 my-1">
+                ⚡ Risposta generata in <span className="font-semibold text-zinc-200">{responseTime}s</span> con dots-studio/dots-3-note-preview
+               </div>
+            )}
             {/* INPUT E BOTTONE CHAT */}
             <form 
               onSubmit={async (e) => {

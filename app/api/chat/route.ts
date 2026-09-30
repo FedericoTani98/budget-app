@@ -1,5 +1,12 @@
-import { google } from "@ai-sdk/google";
-import { streamText, convertToModelMessages } from "ai";
+import { createOpenAI } from "@ai-sdk/openai";
+import { streamText, convertToModelMessages, tool } from "ai";
+import { z } from "zod";
+
+// Configuriamo il client di OpenRouter usando l'SDK di OpenAI
+const openrouter = createOpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
 
 const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
   it: "Rispondi sempre in italiano, in modo chiaro, conciso e utile.",
@@ -13,9 +20,8 @@ export async function POST(req: Request) {
     const { messages, transactions, language } = body;
 
     if (!Array.isArray(messages)) {
-      console.error("messages non è un array! Tipo ricevuto:", typeof messages, messages);
       return new Response(
-        JSON.stringify({ error: "Formato messaggi non valido ricevuto dal client" }),
+        JSON.stringify({ error: "Formato messaggi non valido" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -26,12 +32,25 @@ export async function POST(req: Request) {
     Aiuti l'utente ad analizzare le sue spese, entrate e investimenti basandoti su questi dati attuali registrati nell'app:
     ${JSON.stringify(transactions || [])}
     
+    Se l'utente chiede esplicitamente di aggiungere una spesa, un'entrata o un investimento, DEVI utilizzare il tool 'addTransaction'.
     ${langInstruction}`;
 
     const result = streamText({
-      model: google("gemini-3.8-flash"),
+      // Usiamo un modello gratuito di Qwen su OpenRouter (es. qwen/qwen-2.5-7b-instruct:free)
+      model: openrouter("dots-studio/dots-3-note-preview:free"),
       system: systemPrompt,
       messages: await convertToModelMessages(messages),
+      tools: {
+        addTransaction: tool({
+          description: "Aggiunge una nuova transazione (spesa, entrata o investimento) nell'applicazione dell'utente.",
+          parameters: z.object({
+            type: z.enum(["spese", "entrate", "investimenti"]).describe("Tipo di movimento: spese, entrate o investimenti"),
+            amount: z.number().describe("Importo numerico della transazione"),
+            description: z.string().describe("Descrizione o causale del movimento (es. caffè, stipendio, azioni)"),
+            categoryId: z.string().optional().describe("ID opzionale della categoria"),
+          }),
+        }),
+      },
     });
 
     return result.toUIMessageStreamResponse();
