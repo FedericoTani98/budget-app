@@ -382,7 +382,7 @@ export default function Home() {
     }),
     onToolCall({ toolCall }) {
     if (toolCall.toolName === 'addTransaction') {
-      const args = toolCall.args as { type: string; amount: number; description: string; categoryId?: string };
+      const args = toolCall.input as { type: string; amount: number; description: string; categoryId?: string };
       const targetCategories = (categories as any)[args.type] || [];
       const catId = args.categoryId && targetCategories.some((c: any) => c.id === args.categoryId)
         ? args.categoryId
