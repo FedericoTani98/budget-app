@@ -5,6 +5,11 @@ import { DefaultChatTransport } from "ai";
 
 
 
+
+
+
+
+
 const IconPlus = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -155,6 +160,9 @@ const TRANSLATIONS: Record<Lang, any> = {
         ? `Sei sicuro di voler eliminare la categoria "${label}"? Ci sono ${count} ${count === 1 ? "movimento associato che verrà spostato" : "movimenti associati che verranno spostati"} nella categoria "Altro".`
         : `Sei sicuro di voler eliminare la categoria "${label}"?`,
     nonEliminabile: "Categoria predefinita non eliminabile",
+    generatedIn: "Risposta generata in", 
+    with: "con",
+    elaborando: "L'assistente sta elaborando la risposta...",
   },
   en: {
     patrimonioTotale: "Total Net Worth",
@@ -216,11 +224,14 @@ const TRANSLATIONS: Record<Lang, any> = {
     modificaCategoriaTitle: "Edit Category",
     eliminaCategoriaBtn: "Delete Category",
     confermaEliminaCatTitle: "Delete Category",
+    generatedIn: "Response generated in",
+    with: "with",
     confermaEliminaCatMsg: (count: number, label: string) =>
       count > 0
         ? `Are you sure you want to delete the category "${label}"? There are ${count} associated ${count === 1 ? "transaction that will be moved" : "transactions that will be moved"} to the "Other" category.`
         : `Are you sure you want to delete the category "${label}"?`,
     nonEliminabile: "Default category cannot be deleted",
+    elaborando: "The assistant is processing the response...",
   },
   pl: {
     patrimonioTotale: "Całkowity majątek",
@@ -287,8 +298,13 @@ const TRANSLATIONS: Record<Lang, any> = {
         ? `Czy na pewno chcesz usunąć kategorię „${label}”? Liczba powiązanych transakcji: ${count} – zostaną przeniesione do kategorii „Inne”.`
         : `Czy na pewno chcesz usunąć kategorię „${label}”?`,
     nonEliminabile: "Domyślna kategoria (nie można usunąć)",
+    generatedIn: "Odpowiedź wygenerowana w", 
+    with: "z",
+    elaborando: "Asystent przetwarza odpowiedź..."
   },
 };
+
+
 
 const ensureAltroCategory = (cats: any) => {
   if (!cats || typeof cats !== "object") return DEFAULT_CATEGORIES;
@@ -330,12 +346,18 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<string>("spese");
   const [timeFrame, setTimeFrame] = useState("giorno");
   const [viewDate, setViewDate] = useState(new Date());
+  
+  const currentModelName = "Dots 3 Note";
+
 
   // Stato Lingua
   const [lang, setLang] = useState<Lang>("it");
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const t = TRANSLATIONS[lang];
+  const currentT = TRANSLATIONS[lang] || TRANSLATIONS.it;
 
+  
+  
   // Stato Banner Installazione PWA
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [isIos, setIsIos] = useState(false);
@@ -617,6 +639,10 @@ export default function Home() {
     setIsModalOpen(false);
   };
 
+  const sortedTransactions = [...transactions].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  
   const deleteTransaction = (id: number) => {
     setTransactions(transactions.filter(tx => tx.id !== id));
     setIsModalOpen(false);
@@ -1242,13 +1268,13 @@ export default function Home() {
             )}
             {status === 'submitted' || status === 'streaming' ? (
               <div className="mx-3 my-1 text-gray-400 text-xs italic animate-pulse px-2">
-               L'assistente sta elaborando la risposta...
+               {currentT.elaborando}
               </div>
             ) : null}
 
             {responseTime !== null && status === "ready" && (
               <div className="text-center text-xs text-zinc-400 my-1">
-                ⚡ Risposta generata in <span className="font-semibold text-zinc-200">{responseTime}s</span> con dots-studio/dots-3-note-preview
+                ⚡ {currentT.generatedIn} <span className="font-semibold text-zinc-200">{responseTime}s</span> {currentT.with} {currentModelName}
                </div>
             )}
             {/* INPUT E BOTTONE CHAT */}
