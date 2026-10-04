@@ -17,6 +17,55 @@ const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
   pl: "Zawsze odpowiadaj po polsku, w sposób jasny, zwięzły i pomocny.",
 };
 
+function summarizeTransactions(transactions: any[] = []) {
+  const safeTx = Array.isArray(transactions) ? transactions : [];
+
+  const totals = safeTx.reduce(
+    (acc, tx) => {
+      if (!tx || typeof tx.amount !== "number") return acc;
+
+      acc.total += tx.amount;
+
+      if (tx.type === "entrate") acc.income += tx.amount;
+      if (tx.type === "spese") acc.expenses += tx.amount;
+      if (tx.type === "investimenti") acc.investments += tx.amount;
+
+      return acc;
+    },
+    { total: 0, income: 0, expenses: 0, investments: 0 }
+  );
+
+  const categorySummary: Record<string, number> = {};
+  for (const tx of safeTx) {
+    if (!tx || typeof tx.amount !== "number") continue;
+    const key = String(tx.categoryId || "altro");
+    categorySummary[key] = (categorySummary[key] || 0) + tx.amount;
+  }
+
+  const topCategories = Object.entries(categorySummary)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, value]) => ({ name, value }));
+
+  const recentTx = safeTx
+    .slice(0, 10)
+    .map((tx) => ({
+      type: tx?.type,
+      amount: tx?.amount,
+      categoryId: tx?.categoryId,
+      date: tx?.date,
+      description: tx?.description,
+    }));
+
+  return {
+    totalTransactions: safeTx.length,
+    totals,
+    topCategories,
+    recentTx,
+    createdAt: new Date().toISOString(),
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -31,10 +80,12 @@ export async function POST(req: Request) {
     }
 
     const langInstruction = LANGUAGE_INSTRUCTIONS[language] || LANGUAGE_INSTRUCTIONS.it;
+    const safeSummary = summarizeTransactions(transactions);
 
     const systemPrompt = `Sei un assistente finanziario personale intelligente e amichevole.
-    Aiuti l'utente ad analizzare le sue spese, entrate e investimenti basandoti su questi dati attuali registrati nell'app:
-    ${JSON.stringify(transactions || [])}
+    Analizza solo un riassunto anonimo e aggregato dei dati dell'utente, non tutti i dettagli finanziari individuali.
+    Dati disponibili:
+    ${JSON.stringify(safeSummary)}
 
     ${langInstruction}`;
 
