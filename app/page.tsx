@@ -1262,10 +1262,15 @@ export default function Home() {
           {filteredTransactions.map((tx) => {
             const catData = getCategoryData(tx.type, tx.categoryId);
             const currentQuote = tx.ticker ? quotes[tx.ticker] : null;
+            const rawChangePct =
+                   currentQuote && tx.priceAtPurchase
+                    ? ((currentQuote.price / tx.priceAtPurchase) - 1) * 100
+                    : null;
+
             const changePct =
-              currentQuote && tx.priceAtPurchase
-                ? ((currentQuote.price / tx.priceAtPurchase) - 1) * 100
-                : null;
+               rawChangePct !== null && Math.abs(rawChangePct) < 0.05
+                ? 0
+                : rawChangePct;
 
             return (
               <div 
@@ -1297,7 +1302,7 @@ export default function Home() {
                   </span>
                   {changePct !== null ? (
                     <p className={`text-xs font-bold ${changePct >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>
-                      {changePct >= 0 ? "▲" : changePct < 0 ? "▼" : "─"} {Math.abs(changePct).toFixed(1)}%
+                      {changePct > 0 ? "▲" : changePct < 0 ? "▼" : "─"} {Math.abs(changePct).toFixed(2)}%
                     </p>
                   ) : (
                     <p className="text-xs text-gray-500">{t.modifica}</p>
