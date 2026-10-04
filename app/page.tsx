@@ -1297,7 +1297,7 @@ export default function Home() {
                   </span>
                   {changePct !== null ? (
                     <p className={`text-xs font-bold ${changePct >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>
-                      {changePct >= 0 ? "▲" : "▼"} {Math.abs(changePct).toFixed(1)}%
+                      {changePct >= 0 ? "▲" : changePct < 0 ? "▼" : "─"} {Math.abs(changePct).toFixed(1)}%
                     </p>
                   ) : (
                     <p className="text-xs text-gray-500">{t.modifica}</p>
