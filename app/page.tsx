@@ -170,6 +170,8 @@ const TRANSLATIONS: Record<Lang, any> = {
     savingTicker: "Verifico il ticker...",
     refreshingQuotes: "Aggiorno le quotazioni...",
     aggiornaQuotazioniBtn: "Aggiorna quotazioni",
+    tickerFormat: "In alcuni casi serve il suffisso della borsa (es. VWCE.MI per Borsa Italiana, ASML.AS per Amsterdam)",
+    chatPrivacy: "ℹ️ L'assistente riceve solo un riepilogo aggregato del budget e non i dettagli personali delle singole transazioni.",
   },
   en: {
     patrimonioTotale: "Total Net Worth",
@@ -246,6 +248,8 @@ const TRANSLATIONS: Record<Lang, any> = {
     savingTicker: "Checking ticker...",
     refreshingQuotes: "Refreshing quotes...",
     aggiornaQuotazioniBtn: "Refresh quotes",
+    tickerFormat: "In some cases, the exchange suffix is required (e.g., VWCE.MI for Italian Stock Exchange, ASML.AS for Amsterdam Stock Exchange)",
+    chatPrivacy: "ℹ️ The assistant only receives an aggregated summary of the budget and not the personal details of individual transactions.",
   },
   pl: {
     patrimonioTotale: "Całkowity majątek",
@@ -322,7 +326,9 @@ const TRANSLATIONS: Record<Lang, any> = {
     savingTicker: "Sprawdzam ticker...",
     refreshingQuotes: "Aktualizuję notowania...",
     aggiornaQuotazioniBtn: "Odśwież notowania",
-  },
+    tickerFormat: "W niektórych przypadkach wymagany jest sufiks giełdy (np. VWCE.MI dla Giełdy Włoskiej, ASML.AS dla Giełdy Amsterdamu)",
+    chatPrivacy: "ℹ️ Asystent otrzymuje tylko zagregowane podsumowanie budżetu, a nie szczegóły osobiste poszczególnych transakcji.",
+    },
 };
 
 
@@ -1402,6 +1408,7 @@ export default function Home() {
 
             {/* MESSAGGI CHAT */}
             <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-3 text-base">
+                {t.chatPrivacy}
               {messages.length === 0 && (
                 <div className="text-center text-gray-400 text-sm my-auto p-4 bg-[#1e1e1e] rounded-2xl">
                   {t.chatWelcome}<br/><br/>
@@ -1546,6 +1553,7 @@ export default function Home() {
                     className="bg-[#1e1e1e] border border-[#3a3a3a] p-3 rounded-xl text-white text-base w-full outline-none focus:border-[#4caf50] uppercase"
                   />
                   <p className="text-xs text-gray-500 mt-1">{t.tickerHint}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{t.tickerFormat}</p>
                   {isSavingTicker && <p className="text-xs text-yellow-500 mt-1">{t.savingTicker}</p>}
                   {tickerError && <p className="text-xs text-red-500 mt-1">{tickerError}</p>}
                 </div>
