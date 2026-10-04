@@ -854,7 +854,7 @@ export default function Home() {
 
   if (!mounted) return null;
 
-  const filteredByPeriod = transactions.filter(tx => {
+  const filteredByPeriod = sortedTransactions.filter(tx => {
     if (!tx.date) return true;
     const tDate = new Date(tx.date);
 
