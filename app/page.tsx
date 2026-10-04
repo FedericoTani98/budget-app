@@ -988,13 +988,20 @@ export default function Home() {
   const trackedPeriodInvestments = filteredByPeriod.filter(
     (tx) => tx.type === "investimenti" && tx.ticker && tx.priceAtPurchase && quotes[tx.ticker]
   );
-  const periodCostBasis = trackedPeriodInvestments.reduce((a, tx) => a + tx.amount, 0);
-  const periodCurrentValue = trackedPeriodInvestments.reduce(
-    (a, tx) => a + tx.amount * (quotes[tx.ticker as string].price / (tx.priceAtPurchase as number)),
-    0
+
+  const weightedStats = trackedPeriodInvestments.reduce(
+    (acc, tx) => {
+      const quote = quotes[tx.ticker as string];
+      const currentValue = tx.amount * (quote.price / tx.priceAtPurchase);
+      acc.costBasis += tx.amount;
+      acc.currentValue += currentValue;
+      return acc;
+    },
+    { costBasis: 0, currentValue: 0 }
   );
-  const periodGainAbs = periodCurrentValue - periodCostBasis;
-  const periodGainPct = periodCostBasis > 0 ? (periodCurrentValue / periodCostBasis - 1) * 100 : null;
+
+  const periodGainAbs = weightedStats.currentValue - weightedStats.costBasis;
+  const periodGainPct = weightedStats.costBasis > 0 ? (weightedStats.currentValue / weightedStats.costBasis - 1) * 100 : null;
   const filteredTransactions = filteredByPeriod.filter(tx => tx.type === activeTab);
   const totaleTabAttiva = filteredTransactions.reduce((acc, curr) => acc + curr.amount, 0);
 
