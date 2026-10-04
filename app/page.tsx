@@ -163,6 +163,13 @@ const TRANSLATIONS: Record<Lang, any> = {
     generatedIn: "Risposta generata in", 
     with: "con",
     elaborando: "L'assistente sta elaborando la risposta...",
+    tickerLabel: "Ticker (opzionale)",
+    tickerPlaceholder: "Es. AAPL, VWCE.MI",
+    tickerHint: "Se inserito, traccia l'andamento % rispetto al prezzo di oggi.",
+    tickerNotFound: "Ticker non trovato o quotazione non disponibile. Controlla il simbolo o lascia il campo vuoto.",
+    savingTicker: "Verifico il ticker...",
+    refreshingQuotes: "Aggiorno le quotazioni...",
+    aggiornaQuotazioniBtn: "Aggiorna quotazioni",
   },
   en: {
     patrimonioTotale: "Total Net Worth",
@@ -232,6 +239,13 @@ const TRANSLATIONS: Record<Lang, any> = {
         : `Are you sure you want to delete the category "${label}"?`,
     nonEliminabile: "Default category cannot be deleted",
     elaborando: "The assistant is processing the response...",
+    tickerLabel: "Ticker (optional)",
+    tickerPlaceholder: "E.g. AAPL, VWCE.MI",
+    tickerHint: "If set, tracks the % change versus today's price.",
+    tickerNotFound: "Ticker not found or quote unavailable. Check the symbol or leave the field empty.",
+    savingTicker: "Checking ticker...",
+    refreshingQuotes: "Refreshing quotes...",
+    aggiornaQuotazioniBtn: "Refresh quotes",
   },
   pl: {
     patrimonioTotale: "Całkowity majątek",
@@ -300,7 +314,14 @@ const TRANSLATIONS: Record<Lang, any> = {
     nonEliminabile: "Domyślna kategoria (nie można usunąć)",
     generatedIn: "Odpowiedź wygenerowana w", 
     with: "z",
-    elaborando: "Asystent przetwarza odpowiedź..."
+    elaborando: "Asystent przetwarza odpowiedź...",
+    tickerLabel: "Ticker (opcjonalnie)",
+    tickerPlaceholder: "Np. AAPL, VWCE.MI",
+    tickerHint: "Jeśli podasz ticker, śledzimy zmianę % względem dzisiejszej ceny.",
+    tickerNotFound: "Nie znaleziono tickera lub brak notowania. Sprawdź symbol albo zostaw pole puste.",
+    savingTicker: "Sprawdzam ticker...",
+    refreshingQuotes: "Aktualizuję notowania...",
+    aggiornaQuotazioniBtn: "Odśwież notowania",
   },
 };
 
@@ -395,6 +416,13 @@ export default function Home() {
   // Stato Modale Chat AI
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatText, setChatText] = useState("");
+
+  const [tickerInput, setTickerInput] = useState("");
+  const [tickerError, setTickerError] = useState<string | null>(null);
+  const [isSavingTicker, setIsSavingTicker] = useState(false);
+
+  const [quotes, setQuotes] = useState<Record<string, { price: number; currency: string }>>({});
+  const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
 
   // Vercel AI SDK Hook (transport + body dinamico, include la lingua per l'assistente)
   const { messages, sendMessage, status, error } = useChat({
@@ -567,6 +595,18 @@ export default function Home() {
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [isLangMenuOpen, isBackupMenuOpen]);
 
+    useEffect(() => {
+    if (mounted) refreshQuotes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted]);
+
+  useEffect(() => {
+    if (mounted && activeTab === "investimenti") {
+      refreshQuotes();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
   // Altezza minima dell'app: su iPhone/iPad in modalità app installata, 100vh può
   // risultare più corto dello schermo reale, lasciando una fascia scura in basso.
   // Qui prendiamo il valore più alto tra viewport e schermo (solo iOS, in verticale).
@@ -591,12 +631,50 @@ export default function Home() {
     };
   }, []);
 
+    const fetchQuote = async (symbol: string, date?: string): Promise<{ price: number; currency: string } | null> => {
+    try {
+      const url = date
+        ? `/api/quote?symbol=${encodeURIComponent(symbol)}&date=${encodeURIComponent(date)}`
+        : `/api/quote?symbol=${encodeURIComponent(symbol)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!res.ok || data.error || typeof data.regularMarketPrice !== "number") return null;
+      return { price: data.regularMarketPrice, currency: data.currency || "USD" };
+    } catch {
+      return null;
+    }
+  };
+
+  const refreshQuotes = async () => {
+    const tickers = Array.from(
+      new Set(
+        transactions
+          .filter((tx) => tx.type === "investimenti" && tx.ticker)
+          .map((tx) => tx.ticker as string)
+      )
+    );
+    if (tickers.length === 0) return;
+
+    setIsRefreshingQuotes(true);
+    const results = await Promise.all(tickers.map((sym) => fetchQuote(sym)));
+    setQuotes((prev) => {
+      const next = { ...prev };
+      tickers.forEach((sym, i) => {
+        if (results[i]) next[sym] = results[i]!;
+      });
+      return next;
+    });
+    setIsRefreshingQuotes(false);
+  };
+
   const openNewModal = () => {
     setEditingId(null);
     setAmount("");
     setDescription("");
     setSelectedCategory(null);
     setDate(new Date().toISOString().split("T")[0]);
+    setTickerInput("");
+    setTickerError(null);
     setIsModalOpen(true);
   };
 
@@ -608,12 +686,40 @@ export default function Home() {
     const cat = getCategoryData(t.type, t.categoryId);
     setSelectedCategory(cat);
     setActiveTab(t.type);
+    setTickerInput(t.ticker || "");
+    setTickerError(null);
     setIsModalOpen(true);
   };
 
-  const saveTransaction = (e: any) => {
+  const saveTransaction = async (e: any) => {
     e.preventDefault();
     if (!amount || !selectedCategory) return;
+
+    const trimmedTicker = tickerInput.trim().toUpperCase();
+    const existingTx = editingId ? transactions.find((tx) => tx.id === editingId) : null;
+    const tickerChanged = trimmedTicker !== ((existingTx?.ticker as string) || "");
+
+    let ticker: string | undefined = existingTx?.ticker;
+    let priceAtPurchase: number | undefined = existingTx?.priceAtPurchase;
+
+    if (activeTab === "investimenti" && trimmedTicker) {
+      if (!existingTx || tickerChanged) {
+        setIsSavingTicker(true);
+        setTickerError(null);
+        const quote = await fetchQuote(trimmedTicker, date);
+        setIsSavingTicker(false);
+        if (!quote) {
+          setTickerError(t.tickerNotFound);
+          return;
+        }
+        ticker = trimmedTicker;
+        priceAtPurchase = quote.price;
+        setQuotes((prev) => ({ ...prev, [trimmedTicker]: quote }));
+      }
+    } else {
+      ticker = undefined;
+      priceAtPurchase = undefined;
+    }
 
     if (editingId) {
       setTransactions(transactions.map(tx => tx.id === editingId ? {
@@ -622,7 +728,9 @@ export default function Home() {
         type: activeTab,
         categoryId: selectedCategory.id,
         description: description.trim(),
-        date: date
+        date: date,
+        ticker,
+        priceAtPurchase,
       } : tx));
     } else {
       const newTx = {
@@ -631,7 +739,9 @@ export default function Home() {
         type: activeTab,
         categoryId: selectedCategory.id,
         description: description.trim(),
-        date: date
+        date: date,
+        ticker,
+        priceAtPurchase,
       };
       setTransactions([newTx, ...transactions]);
     }
@@ -874,6 +984,17 @@ export default function Home() {
     return true;
   });
 
+  
+  const trackedPeriodInvestments = filteredByPeriod.filter(
+    (tx) => tx.type === "investimenti" && tx.ticker && tx.priceAtPurchase && quotes[tx.ticker]
+  );
+  const periodCostBasis = trackedPeriodInvestments.reduce((a, tx) => a + tx.amount, 0);
+  const periodCurrentValue = trackedPeriodInvestments.reduce(
+    (a, tx) => a + tx.amount * (quotes[tx.ticker as string].price / (tx.priceAtPurchase as number)),
+    0
+  );
+  const periodGainAbs = periodCurrentValue - periodCostBasis;
+  const periodGainPct = periodCostBasis > 0 ? (periodCurrentValue / periodCostBasis - 1) * 100 : null;
   const filteredTransactions = filteredByPeriod.filter(tx => tx.type === activeTab);
   const totaleTabAttiva = filteredTransactions.reduce((acc, curr) => acc + curr.amount, 0);
 
@@ -1033,6 +1154,17 @@ export default function Home() {
           ))}
         </div>
 
+        {activeTab === "investimenti" && (
+          <button
+            onClick={refreshQuotes}
+            disabled={isRefreshingQuotes}
+            className="self-end text-xs text-gray-400 mb-3 flex items-center gap-1 disabled:opacity-50"
+          >
+            <span className={isRefreshingQuotes ? "animate-spin" : ""}>🔄</span>
+            {isRefreshingQuotes ? t.refreshingQuotes : t.aggiornaQuotazioniBtn}
+          </button>
+        )}
+
         {/* NAVIGAZIONE DATA */}
         {timeFrame !== "tutti" && (
           <div className="flex justify-between items-center bg-[#1e1e1e]/60 px-4 py-2 rounded-xl mb-4 text-base font-medium relative">
@@ -1083,6 +1215,11 @@ export default function Home() {
             <div className="bg-[#2d2d2d] p-2 rounded-xl border-t-2 border-[#3b82f6]">
               <span className="text-gray-400 text-xs block">{t.tabInvest}</span>
               <strong className="text-[#3b82f6]">{periodInvestiti.toFixed(2)} €</strong>
+              {periodGainPct !== null && (
+                <p className={`text-xs font-bold mt-0.5 ${periodGainAbs >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>
+                  {periodGainAbs >= 0 ? "▲" : "▼"} {periodGainAbs >= 0 ? "+" : ""}{periodGainAbs.toFixed(2)} € ({periodGainPct >= 0 ? "+" : ""}{periodGainPct.toFixed(1)}%)
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -1097,6 +1234,11 @@ export default function Home() {
               <div>
                 <span className="text-xl font-bold">{totaleTabAttiva.toFixed(2)} €</span>
                 <p className="text-xs text-gray-400 uppercase tracking-widest">{tabLabel(activeTab)}</p>
+                {activeTab === "investimenti" && periodGainPct !== null && (
+                  <p className={`text-xs font-bold mt-1 ${periodGainAbs >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>
+                    {periodGainAbs >= 0 ? "▲" : "▼"} {periodGainPct >= 0 ? "+" : ""}{periodGainPct.toFixed(1)}%
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -1119,6 +1261,12 @@ export default function Home() {
         <div className="flex flex-col gap-2">
           {filteredTransactions.map((tx) => {
             const catData = getCategoryData(tx.type, tx.categoryId);
+            const currentQuote = tx.ticker ? quotes[tx.ticker] : null;
+            const changePct =
+              currentQuote && tx.priceAtPurchase
+                ? ((currentQuote.price / tx.priceAtPurchase) - 1) * 100
+                : null;
+
             return (
               <div 
                 key={tx.id} 
@@ -1135,14 +1283,25 @@ export default function Home() {
                   <div>
                     <p className="font-medium text-base text-gray-100">{catData.label}</p>
                     {tx.description && <p className="text-sm text-gray-400">{tx.description}</p>}
-                    <p className="text-xs text-gray-500">{tx.date}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs text-gray-500">{tx.date}</p>
+                      {tx.ticker && (
+                        <span className="text-xs text-gray-500 bg-[#2d2d2d] px-1.5 rounded">{tx.ticker}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <span className={`font-bold text-base ${tx.type === "spese" ? "text-white" : tx.type === "entrate" ? "text-[#10b981]" : "text-[#3b82f6]"}`}>
                     {tx.amount.toFixed(2)} €
                   </span>
-                  <p className="text-xs text-gray-500">{t.modifica}</p>
+                  {changePct !== null ? (
+                    <p className={`text-xs font-bold ${changePct >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>
+                      {changePct >= 0 ? "▲" : "▼"} {Math.abs(changePct).toFixed(1)}%
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500">{t.modifica}</p>
+                  )}
                 </div>
               </div>
             );
@@ -1364,6 +1523,22 @@ export default function Home() {
                 />
               </div>
 
+              {activeTab === "investimenti" && (
+                <div>
+                  <label className="text-sm text-gray-400 uppercase mb-1 block">{t.tickerLabel}</label>
+                  <input
+                    type="text"
+                    placeholder={t.tickerPlaceholder}
+                    value={tickerInput}
+                    onChange={(e) => { setTickerInput(e.target.value); setTickerError(null); }}
+                    className="bg-[#1e1e1e] border border-[#3a3a3a] p-3 rounded-xl text-white text-base w-full outline-none focus:border-[#4caf50] uppercase"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">{t.tickerHint}</p>
+                  {isSavingTicker && <p className="text-xs text-yellow-500 mt-1">{t.savingTicker}</p>}
+                  {tickerError && <p className="text-xs text-red-500 mt-1">{tickerError}</p>}
+                </div>
+              )}
+
               {/* SELEZIONE CATEGORIA */}
               <div className="flex-1 overflow-y-auto">
                 <div className="flex justify-between items-center mb-2">
@@ -1432,12 +1607,12 @@ export default function Home() {
                 )}
                 <button
                   type="submit"
-                  disabled={!amount || !selectedCategory}
+                  disabled={!amount || !selectedCategory || isSavingTicker}
                   className={`flex-1 py-3.5 rounded-xl font-bold text-base ${
-                    !amount || !selectedCategory ? "bg-gray-600 text-gray-400 cursor-not-allowed" : "bg-[#4caf50] text-white"
+                    !amount || !selectedCategory || isSavingTicker ? "bg-gray-600 text-gray-400 cursor-not-allowed" : "bg-[#4caf50] text-white"
                   }`}
                 >
-                  {editingId ? t.aggiornaBtn : t.salvaBtn}
+                  {isSavingTicker ? t.savingTicker : editingId ? t.aggiornaBtn : t.salvaBtn}
                 </button>
               </div>
 
