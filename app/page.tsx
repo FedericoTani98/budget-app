@@ -172,6 +172,12 @@ const TRANSLATIONS: Record<Lang, any> = {
     aggiornaQuotazioniBtn: "Aggiorna quotazioni",
     tickerFormat: "In alcuni casi serve il suffisso della borsa (es. VWCE.MI per Borsa Italiana, ASML.AS per Amsterdam)",
     chatPrivacy: "ℹ️ L'assistente riceve solo un riepilogo aggregato del budget e non i dettagli personali delle singole transazioni.",
+    tutteLeCategorie: "Tutte le categorie",
+    vistaCategorie: "Categorie",
+    dettaglioCategoria: "Dettaglio categoria",
+    movimentoSingolo: "movimento",
+    movimentiPlurale: "movimenti",
+    nessunMovimentoCat: "Nessun movimento registrato in questa categoria per questo periodo.",
   },
   en: {
     patrimonioTotale: "Total Net Worth",
@@ -250,6 +256,12 @@ const TRANSLATIONS: Record<Lang, any> = {
     aggiornaQuotazioniBtn: "Refresh quotes",
     tickerFormat: "In some cases, the exchange suffix is required (e.g., VWCE.MI for Italian Stock Exchange, ASML.AS for Amsterdam Stock Exchange)",
     chatPrivacy: "ℹ️ The assistant only receives an aggregated summary of the budget and not the personal details of individual transactions.",
+    tutteLeCategorie: "All categories",
+    vistaCategorie: "Categories",
+    dettaglioCategoria: "Category details",
+    movimentoSingolo: "transaction",
+    movimentiPlurale: "transactions",
+    nessunMovimentoCat: "No transactions recorded in this category for this period.",
   },
   pl: {
     patrimonioTotale: "Całkowity majątek",
@@ -328,7 +340,13 @@ const TRANSLATIONS: Record<Lang, any> = {
     aggiornaQuotazioniBtn: "Odśwież notowania",
     tickerFormat: "W niektórych przypadkach wymagany jest sufiks giełdy (np. VWCE.MI dla Giełdy Włoskiej, ASML.AS dla Giełdy Amsterdamu)",
     chatPrivacy: "ℹ️ Asystent otrzymuje tylko zagregowane podsumowanie budżetu, a nie szczegóły osobiste poszczególnych transakcji.",
-    },
+    tutteLeCategorie: "Wszystkie kategorie",
+    vistaCategorie: "Kategorie",
+    dettaglioCategoria: "Szczegóły kategorii",
+    movimentoSingolo: "transakcja",
+    movimentiPlurale: "transakcje",
+    nessunMovimentoCat: "Brak transakcji w tej kategorii w tym okresie.",
+  },
 };
 
 
@@ -373,8 +391,15 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<string>("spese");
   const [timeFrame, setTimeFrame] = useState("giorno");
   const [viewDate, setViewDate] = useState(new Date());
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
   
   const currentModelName = "Dots 3 Note";
+
+  useEffect(() => {
+    setSelectedCategoryId(null);
+    setShowAllTransactions(false);
+  }, [activeTab]);
 
 
   // Stato Lingua
@@ -1033,7 +1058,8 @@ export default function Home() {
   const categoryBreakdown: any[] = [];
 
   if (totaleTabAttiva > 0) {
-    Object.entries(categoryTotals).forEach(([catId, amt]: [string, any]) => {
+    const sortedEntries = Object.entries(categoryTotals).sort((a: any, b: any) => b[1] - a[1]);
+    sortedEntries.forEach(([catId, amt]: [string, any]) => {
       const catData = getCategoryData(activeTab, catId);
       const percent = (amt / totaleTabAttiva) * 100;
       const start = cumulativePercent;
@@ -1044,6 +1070,66 @@ export default function Home() {
       categoryBreakdown.push({ ...catData, amount: amt, percent });
     });
   }
+
+  const categoryTransactions = selectedCategoryId
+    ? filteredTransactions.filter((tx) => tx.categoryId === selectedCategoryId)
+    : [];
+  const selectedCatData = selectedCategoryId ? getCategoryData(activeTab, selectedCategoryId) : null;
+  const selectedCatTotal = categoryTransactions.reduce((acc, curr) => acc + curr.amount, 0);
+  const selectedCatPct = totaleTabAttiva > 0 ? (selectedCatTotal / totaleTabAttiva) * 100 : 0;
+
+  const renderTransactionItem = (tx: any) => {
+    const catData = getCategoryData(tx.type, tx.categoryId);
+    const currentQuote = tx.ticker ? quotes[tx.ticker] : null;
+    const rawChangePct =
+      currentQuote && tx.priceAtPurchase
+        ? ((currentQuote.price / tx.priceAtPurchase) - 1) * 100
+        : null;
+
+    const changePct =
+      rawChangePct !== null && Math.abs(rawChangePct) < 0.05
+        ? 0
+        : rawChangePct;
+
+    return (
+      <div 
+        key={tx.id} 
+        onClick={() => openEditModal(tx)}
+        className="bg-[#3a3a3a] p-3 rounded-xl flex items-center justify-between shadow-sm cursor-pointer hover:bg-[#444444] transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div 
+            className="w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-inner flex-shrink-0"
+            style={{ backgroundColor: catData.color }}
+          >
+            {catData.icon}
+          </div>
+          <div>
+            <p className="font-medium text-base text-gray-100">{catData.label}</p>
+            {tx.description && <p className="text-sm text-gray-400">{tx.description}</p>}
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs text-gray-500">{tx.date}</p>
+              {tx.ticker && (
+                <span className="text-xs text-gray-500 bg-[#2d2d2d] px-1.5 rounded">{tx.ticker}</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className={`font-bold text-base ${tx.type === "spese" ? "text-white" : tx.type === "entrate" ? "text-[#10b981]" : "text-[#3b82f6]"}`}>
+            {tx.amount.toFixed(2)} €
+          </span>
+          {changePct !== null ? (
+            <p className={`text-xs font-bold ${changePct >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>
+              {changePct > 0 ? "▲" : changePct < 0 ? "▼" : "─"} {Math.abs(changePct).toFixed(2)}%
+            </p>
+          ) : (
+            <p className="text-xs text-gray-500">{t.modifica}</p>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const conicGradientBg = chartSlices.length > 0 
     ? `conic-gradient(${chartSlices.join(", ")})` 
@@ -1261,73 +1347,154 @@ export default function Home() {
         {categoryBreakdown.length > 0 && (
           <div className="flex flex-wrap justify-center gap-2 mb-6">
             {categoryBreakdown.map((cat) => (
-              <div key={cat.id} className="flex items-center gap-1.5 bg-[#1e1e1e] px-2.5 py-1 rounded-full text-sm">
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setSelectedCategoryId(cat.id);
+                  setShowAllTransactions(false);
+                }}
+                className="flex items-center gap-1.5 bg-[#1e1e1e] hover:bg-[#2a2a2a] px-2.5 py-1 rounded-full text-sm transition-colors cursor-pointer border border-transparent hover:border-gray-700"
+              >
                 <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: cat.color }} />
                 <span className="text-gray-300">{cat.label}:</span>
                 <strong className="text-white">{cat.percent.toFixed(0)}%</strong>
-              </div>
+              </button>
             ))}
           </div>
         )}
 
-        {/* LISTA TRANSAZIONI */}
-        <div className="flex flex-col gap-2">
-          {filteredTransactions.map((tx) => {
-            const catData = getCategoryData(tx.type, tx.categoryId);
-            const currentQuote = tx.ticker ? quotes[tx.ticker] : null;
-            const rawChangePct =
-                   currentQuote && tx.priceAtPurchase
-                    ? ((currentQuote.price / tx.priceAtPurchase) - 1) * 100
-                    : null;
-
-            const changePct =
-               rawChangePct !== null && Math.abs(rawChangePct) < 0.05
-                ? 0
-                : rawChangePct;
-
-            return (
-              <div 
-                key={tx.id} 
-                onClick={() => openEditModal(tx)}
-                className="bg-[#3a3a3a] p-3 rounded-xl flex items-center justify-between shadow-sm cursor-pointer hover:bg-[#444444] transition-colors"
+        {/* VISTA CONTENUTO (CATEGORIE / DETTAGLIO CATEGORIA / TUTTI I MOVIMENTI) */}
+        {selectedCategoryId ? (
+          /* DETTAGLIO SINGOLA CATEGORIA */
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between mb-1">
+              <button
+                onClick={() => setSelectedCategoryId(null)}
+                className="flex items-center gap-1.5 text-sm font-semibold text-[#4caf50] hover:text-[#66bb6a] py-1 transition-colors"
               >
+                <span>❮</span>
+                <span>{t.tutteLeCategorie}</span>
+              </button>
+              <span className="text-xs text-gray-400 bg-[#1e1e1e] px-2.5 py-1 rounded-full font-medium">
+                {categoryTransactions.length} {categoryTransactions.length === 1 ? t.movimentoSingolo : t.movimentiPlurale}
+              </span>
+            </div>
+
+            {selectedCatData && (
+              <div className="bg-[#1e1e1e] p-3 rounded-2xl border border-gray-800 flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <div 
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-inner"
-                    style={{ backgroundColor: catData.color }}
+                  <div
+                    className="w-11 h-11 rounded-full flex items-center justify-center text-2xl shadow-inner flex-shrink-0"
+                    style={{ backgroundColor: selectedCatData.color }}
                   >
-                    {catData.icon}
+                    {selectedCatData.icon}
                   </div>
                   <div>
-                    <p className="font-medium text-base text-gray-100">{catData.label}</p>
-                    {tx.description && <p className="text-sm text-gray-400">{tx.description}</p>}
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-xs text-gray-500">{tx.date}</p>
-                      {tx.ticker && (
-                        <span className="text-xs text-gray-500 bg-[#2d2d2d] px-1.5 rounded">{tx.ticker}</span>
-                      )}
-                    </div>
+                    <p className="font-bold text-base text-white">{selectedCatData.label}</p>
+                    <p className="text-xs text-gray-400">
+                      {totaleTabAttiva > 0 ? `${selectedCatPct.toFixed(1)}% ${lang === "it" ? "del totale" : lang === "pl" ? "całości" : "of total"}` : ""}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className={`font-bold text-base ${tx.type === "spese" ? "text-white" : tx.type === "entrate" ? "text-[#10b981]" : "text-[#3b82f6]"}`}>
-                    {tx.amount.toFixed(2)} €
+                  <span className={`font-bold text-lg ${activeTab === "spese" ? "text-white" : activeTab === "entrate" ? "text-[#10b981]" : "text-[#3b82f6]"}`}>
+                    {selectedCatTotal.toFixed(2)} €
                   </span>
-                  {changePct !== null ? (
-                    <p className={`text-xs font-bold ${changePct >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>
-                      {changePct > 0 ? "▲" : changePct < 0 ? "▼" : "─"} {Math.abs(changePct).toFixed(2)}%
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-500">{t.modifica}</p>
-                  )}
                 </div>
               </div>
-            );
-          })}
-          {filteredTransactions.length === 0 && (
-            <p className="text-center text-gray-500 mt-6 text-base">{t.nessunMovimento}</p>
-          )}
-        </div>
+            )}
+
+            {categoryTransactions.map(renderTransactionItem)}
+
+            {categoryTransactions.length === 0 && (
+              <p className="text-center text-gray-500 mt-6 text-base">{t.nessunMovimentoCat}</p>
+            )}
+          </div>
+        ) : showAllTransactions ? (
+          /* TUTTI I MOVIMENTI ORDINATI PER DATA */
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between mb-1">
+              <button
+                onClick={() => setShowAllTransactions(false)}
+                className="flex items-center gap-1.5 text-sm font-semibold text-[#4caf50] hover:text-[#66bb6a] py-1 transition-colors"
+              >
+                <span>❮</span>
+                <span>{t.vistaCategorie}</span>
+              </button>
+              <span className="text-xs text-gray-400 bg-[#1e1e1e] px-2.5 py-1 rounded-full font-medium">
+                {filteredTransactions.length} {filteredTransactions.length === 1 ? t.movimentoSingolo : t.movimentiPlurale}
+              </span>
+            </div>
+
+            {filteredTransactions.map(renderTransactionItem)}
+
+            {filteredTransactions.length === 0 && (
+              <p className="text-center text-gray-500 mt-6 text-base">{t.nessunMovimento}</p>
+            )}
+          </div>
+        ) : (
+          /* LISTA CATEGORIE CON PERCENTUALI (VISTA PRINCIPALE) */
+          <div className="flex flex-col gap-2">
+            {filteredTransactions.length > 0 && (
+              <div className="flex items-center justify-between mb-1 px-1">
+                <span className="text-xs text-gray-400 uppercase tracking-wider font-bold">
+                  {t.vistaCategorie}
+                </span>
+                <button
+                  onClick={() => setShowAllTransactions(true)}
+                  className="text-xs font-semibold text-[#4caf50] hover:text-[#66bb6a] bg-[#1e1e1e] hover:bg-[#252525] px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1.5 border border-gray-700/50"
+                >
+                  <span>📋</span>
+                  <span>{t.tuttiMovimenti}</span>
+                </button>
+              </div>
+            )}
+
+            {categoryBreakdown.map((cat) => {
+              const count = filteredTransactions.filter((tx) => tx.categoryId === cat.id).length;
+              return (
+                <div 
+                  key={cat.id} 
+                  onClick={() => {
+                    setSelectedCategoryId(cat.id);
+                    setShowAllTransactions(false);
+                  }}
+                  className="bg-[#3a3a3a] p-3 rounded-xl flex items-center justify-between shadow-sm cursor-pointer hover:bg-[#444444] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-inner flex-shrink-0"
+                      style={{ backgroundColor: cat.color }}
+                    >
+                      {cat.icon}
+                    </div>
+                    <div>
+                      <p className="font-medium text-base text-gray-100">{cat.label}</p>
+                      <p className="text-xs text-gray-400">
+                        {count} {count === 1 ? t.movimentoSingolo : t.movimentiPlurale}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="text-right">
+                      <span className={`font-bold text-base ${activeTab === "spese" ? "text-white" : activeTab === "entrate" ? "text-[#10b981]" : "text-[#3b82f6]"}`}>
+                        {cat.amount.toFixed(2)} €
+                      </span>
+                      <p className="text-xs font-semibold text-gray-400">
+                        {cat.percent.toFixed(1)}%
+                      </p>
+                    </div>
+                    <span className="text-gray-400 text-lg font-bold">›</span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {filteredTransactions.length === 0 && (
+              <p className="text-center text-gray-500 mt-6 text-base">{t.nessunMovimento}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ESITO IMPORT BACKUP */}
