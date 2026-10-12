@@ -1,6 +1,6 @@
 # 💰 Budget App
 
-Una web app personale per tracciare spese, entrate e investimenti, con un assistente finanziario AI integrato basato su Google Gemini.
+Una web app personale per tracciare spese, entrate e investimenti, con un assistente finanziario AI integrato.
 
 ## ✨ Funzionalità
 
