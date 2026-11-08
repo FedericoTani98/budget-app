@@ -3,7 +3,6 @@ import type { IncidentEvent } from "@/lib/incident-agent";
 
 interface IncidentQueueMessage {
   event: IncidentEvent;
-  apiKey: string;
 }
 
 const DEFAULT_AGENT_INGEST_URL = "https://budget-app-agents.onrender.com/ingest";
@@ -13,7 +12,13 @@ const AGENT_REQUEST_TIMEOUT_MS = 55_000;
 // effective timeout for the Vercel project's plan before relying on this.
 export const maxDuration = 60;
 
-export const POST = handleCallback<IncidentQueueMessage>(async ({ event, apiKey }) => {
+export const POST = handleCallback<IncidentQueueMessage>(async ({ event }) => {
+  const apiKey = process.env.AGENT_API_KEY;
+  if (!apiKey) {
+    // Fail the delivery so Vercel Queues can retry after configuration is fixed.
+    throw new Error("AGENT_API_KEY is not configured for the queue consumer");
+  }
+
   const url = process.env.AGENT_INGEST_URL || DEFAULT_AGENT_INGEST_URL;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), AGENT_REQUEST_TIMEOUT_MS);
@@ -24,9 +29,8 @@ export const POST = handleCallback<IncidentQueueMessage>(async ({ event, apiKey 
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        // Forward the event identifier for downstream observability. The
-        // current agent does not deduplicate this header; queue deliveries
-        // are at-least-once and can therefore repeat side effects.
+        // Forward the stable event ID. The Render agent must persist and
+        // enforce this key before retries are safe with side effects enabled.
         "Idempotency-Key": event.eventId,
       },
       body: JSON.stringify(event),
@@ -46,9 +50,8 @@ export const POST = handleCallback<IncidentQueueMessage>(async ({ event, apiKey 
       event.eventId,
       error instanceof Error ? error.name : "UnknownError",
     );
-    // Throwing asks Vercel Queues to retry. Because delivery is at-least-once,
-    // the downstream agent must implement idempotency before DRY_RUN=false is
-    // safe for events that can create issues or send Slack messages.
+    // Vercel Queues uses at-least-once delivery. A retry can repeat downstream
+    // side effects unless the agent deduplicates event.eventId persistently.
     throw error;
   } finally {
     clearTimeout(timeout);
