@@ -5,12 +5,31 @@ interface IncidentQueueMessage {
   event: IncidentEvent;
 }
 
+interface IncidentAgentResult {
+  status?: string;
+  triage?: { severity?: string };
+  actions?: { issue?: string };
+}
+
 const DEFAULT_AGENT_INGEST_URL = "https://budget-app-agents.onrender.com/ingest";
 const AGENT_REQUEST_TIMEOUT_MS = 55_000;
 
 // Keep the consumer below the 60-second Hobby function limit. Confirm the
 // effective timeout for the Vercel project's plan before relying on this.
 export const maxDuration = 60;
+
+const allowedStatuses = new Set(["alerted", "dry_run", "triaged", "duplicate"]);
+const allowedSeverities = new Set(["low", "medium", "high", "critical"]);
+const allowedIssueStatuses = new Set([
+  "created",
+  "failed",
+  "not_created",
+  "would_be_created",
+]);
+
+function safeValue(value: unknown, allowed: Set<string>): string {
+  return typeof value === "string" && allowed.has(value) ? value : "unknown";
+}
 
 export const POST = handleCallback<IncidentQueueMessage>(async ({ event }) => {
   const apiKey = process.env.AGENT_API_KEY;
@@ -42,6 +61,21 @@ export const POST = handleCallback<IncidentQueueMessage>(async ({ event }) => {
       throw new Error(`Incident agent responded with status ${response.status}`);
     }
 
+    let result: IncidentAgentResult = {};
+    try {
+      result = (await response.json()) as IncidentAgentResult;
+    } catch {
+      // Do not log the response body; it may contain sensitive information.
+    }
+
+    console.info(
+      "Incident agent result: module=%s event_id=%s status=%s severity=%s issue=%s",
+      event.module,
+      event.eventId,
+      safeValue(result.status, allowedStatuses),
+      safeValue(result.triage?.severity, allowedSeverities),
+      safeValue(result.actions?.issue, allowedIssueStatuses),
+    );
     console.info("Incident delivered: module=%s event_id=%s", event.module, event.eventId);
   } catch (error) {
     console.error(
