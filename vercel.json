@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/api/queues/report-incident/route.ts": {
+      "maxDuration": 60,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "incident-events"
+        }
+      ]
+    }
+  }
+}
