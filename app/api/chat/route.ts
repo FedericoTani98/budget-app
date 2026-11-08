@@ -1,5 +1,6 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, convertToModelMessages } from "ai";
+import { reportIncident } from "@/lib/incident-agent";
 
 // Su Vercel (piano Hobby) le funzioni hanno un limite di 10s di default:
 // se il modello ci mette di più, la richiesta viene interrotta a metà senza
@@ -97,9 +98,10 @@ export async function POST(req: Request) {
 
     return result.toUIMessageStreamResponse();
 
-  } catch (error: any) {
-    console.error("ERRORE NELLA CHAT API:", error);
-    return new Response(JSON.stringify({ error: error.message || "Errore interno del server" }), {
+  } catch (error: unknown) {
+    console.error("ERRORE NELLA CHAT API:", error instanceof Error ? error.name : "UnknownError");
+    await reportIncident("api_error", "chat-api", "Errore interno nella API chat", error);
+    return new Response(JSON.stringify({ error: "Errore interno del server" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

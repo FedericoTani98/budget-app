@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import YahooFinance from "yahoo-finance2";
+import { reportIncident } from "@/lib/incident-agent";
 
 const yahooFinance = new YahooFinance();
 
@@ -62,8 +63,9 @@ export async function GET(request: Request) {
       currency: quote.currency,
       regularMarketChangePercent: quote.regularMarketChangePercent,
     });
-  } catch (error) {
-    console.error("Errore /api/quote:", error);
+  } catch (error: unknown) {
+    console.error("Errore /api/quote:", error instanceof Error ? error.name : "UnknownError");
+    await reportIncident("api_error", "quote-api", "Errore interno nella API quotazioni", error);
     return NextResponse.json({ error: "Errore nel recupero del dato" }, { status: 500 });
   }
 }
