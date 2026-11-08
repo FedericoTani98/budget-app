@@ -14,6 +14,7 @@
     "@ai-sdk/openai": "^4.0.82",
     "@ai-sdk/react": "^4.0.117",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/queue": "^0.11.0",
     "ai": "^7.0.114",
     "next": "16.3.6",
     "react": "19.2.8",
