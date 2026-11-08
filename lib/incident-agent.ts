@@ -18,7 +18,7 @@ const INCIDENT_TOPIC = "incident-events";
 /**
  * Queue a minimal, non-sensitive server-side error event for asynchronous
  * delivery to the incident agent. Never include request bodies, user data,
- * provider error messages, or stacks.
+ * provider error messages, stacks, or credentials in queue messages.
  */
 export async function reportIncident(
   eventType: IncidentEventType,
@@ -26,8 +26,7 @@ export async function reportIncident(
   message: string,
   error?: unknown,
 ): Promise<void> {
-  const apiKey = process.env.AGENT_API_KEY;
-  if (!apiKey) {
+  if (!process.env.AGENT_API_KEY) {
     console.warn("Incident agent not configured: AGENT_API_KEY is missing");
     return;
   }
@@ -42,7 +41,9 @@ export async function reportIncident(
 
   try {
     const { send } = await import("@vercel/queue");
-    await send(INCIDENT_TOPIC, { event, apiKey });
+    // Keep only the event in durable queue storage. The consumer obtains the
+    // secret from its server-side AGENT_API_KEY environment variable.
+    await send(INCIDENT_TOPIC, { event });
     console.info("Incident queued: module=%s event_id=%s", module, event.eventId);
   } catch (queueError) {
     // Queueing failures must not replace the original API response.
